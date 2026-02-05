@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production
+build/
+dist/
+
+# Misc
+.DS_Store
+.env
+.npm
+*.log
+npm-debug.log*
+
+# Database (Prisma & SQLite)
+*.db
+*.sqlite
+*.sqlite3
+server/prisma/dev.db
+server/prisma/dev.db-journal
+
+# Uploads (Keep folder, ignore content)
+uploads/*
+!uploads/.gitkeep
+idn-book/uploads/*
+!idn-book/uploads/.gitkeep
+
+# Docker
+.dockerignore
