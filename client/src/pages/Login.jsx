@@ -16,11 +16,11 @@ const Login = () => {
         const endpoint = isRegistering ? 'register' : 'login';
 
         try {
-            const res = await axios.post(`http://localhost:3000/auth/${endpoint}`, { username, password });
+            const res = await axios.post(`http://localhost:3055/auth/${endpoint}`, { username, password });
 
             if (isRegistering) {
                 // If registered successfully, just login immediately or switch to login
-                const loginRes = await axios.post('http://localhost:3000/auth/login', { username, password });
+                const loginRes = await axios.post('http://localhost:3055/auth/login', { username, password });
                 localStorage.setItem('token', loginRes.data.token);
                 localStorage.setItem('username', loginRes.data.username);
                 localStorage.setItem('role', loginRes.data.role);

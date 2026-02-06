@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
@@ -12,5 +12,5 @@ RUN npm run build
 
 EXPOSE 5173
 
-# Serve using Vite Preview (or serve -s dist)
-CMD ["npm", "run", "preview", "--", "--host"]
+# Serve using Vite Preview on port 5173
+CMD ["npm", "run", "preview", "--", "--host", "--port", "5173"]

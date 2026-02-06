@@ -20,7 +20,7 @@ const AdminDashboard = () => {
     const fetchAdminBooks = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:3000/books/admin', {
+            const res = await axios.get('http://localhost:3055/books/admin', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setBooks(res.data);
@@ -34,7 +34,7 @@ const AdminDashboard = () => {
         if (!window.confirm('ADMIN DELETE: Are you sure?')) return;
         const token = localStorage.getItem('token');
         try {
-            await axios.delete(`http://localhost:3000/books/${id}`, {
+            await axios.delete(`http://localhost:3055/books/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchAdminBooks();

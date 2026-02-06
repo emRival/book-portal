@@ -6,12 +6,12 @@ services:
       context: ./server
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3055:3055"
     volumes:
       - ./uploads:/app/uploads
       - ./server/prisma/dev.db:/app/prisma/dev.db
     environment:
-      - PORT=3000
+      - PORT=3055
     restart: always
 
   frontend:

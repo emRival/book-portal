@@ -15,8 +15,8 @@ const Home = () => {
         const fetchData = async () => {
             try {
                 const [booksRes, categoriesRes] = await Promise.all([
-                    axios.get('http://localhost:3000/books/public'),
-                    axios.get('http://localhost:3000/books/categories/list')
+                    axios.get('http://localhost:3055/books/public'),
+                    axios.get('http://localhost:3055/books/categories/list')
                 ]);
                 setBooks(booksRes.data);
                 setCategories(categoriesRes.data);
@@ -221,7 +221,7 @@ const Home = () => {
                                             <div className="aspect-[3/4] bg-gray-50 border border-black/5 relative overflow-hidden mb-8">
                                                 {book.coverImage ? (
                                                     <img
-                                                        src={`http://localhost:3000/uploads/${book.coverImage}`}
+                                                        src={`http://localhost:3055/uploads/${book.coverImage}`}
                                                         className="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 scale-100 group-hover:scale-105"
                                                     />
                                                 ) : (

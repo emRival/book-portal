@@ -31,7 +31,7 @@ const Dashboard = () => {
         try {
             const token = localStorage.getItem('token');
             if (!token) return; // Should be handled by useEffect redirect, but just in case
-            const res = await axios.get('http://localhost:3000/books', {
+            const res = await axios.get('http://localhost:3055/books', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setBooks(res.data);
@@ -89,7 +89,7 @@ const Dashboard = () => {
         const token = localStorage.getItem('token');
 
         try {
-            await axios.post('http://localhost:3000/books', formData, {
+            await axios.post('http://localhost:3055/books', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Authorization': `Bearer ${token}`
@@ -119,7 +119,7 @@ const Dashboard = () => {
         if (!window.confirm('Are you sure?')) return;
         const token = localStorage.getItem('token');
         try {
-            await axios.delete(`http://localhost:3000/books/${id}`, {
+            await axios.delete(`http://localhost:3055/books/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchBooks();
@@ -157,7 +157,7 @@ const Dashboard = () => {
                         {/* Featured Book */}
                         <div className="lg:col-span-2 bg-black text-white p-8 overflow-hidden relative group">
                             <div className="absolute right-0 top-0 opacity-10 blur-sm scale-150 group-hover:scale-110 transition-transform duration-700">
-                                {highestViewBook.coverImage && <img src={`http://localhost:3000/uploads/${highestViewBook.coverImage}`} className="w-64 h-auto" />}
+                                {highestViewBook.coverImage && <img src={`http://localhost:3055/uploads/${highestViewBook.coverImage}`} className="w-64 h-auto" />}
                             </div>
                             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8 h-full">
                                 <div className="border-l-2 border-cobalt-primary pl-6">
@@ -283,7 +283,7 @@ const Dashboard = () => {
                             <div className="flex items-center gap-6">
                                 <div className="w-12 h-16 bg-gray-100 flex items-center justify-center border border-gray-200 overflow-hidden">
                                     {book.coverImage ? (
-                                        <img src={`http://localhost:3000/uploads/${book.coverImage}`} className="w-full h-full object-cover" />
+                                        <img src={`http://localhost:3055/uploads/${book.coverImage}`} className="w-full h-full object-cover" />
                                     ) : (
                                         <BookIcon size={16} className="opacity-20" />
                                     )}

@@ -11,14 +11,14 @@ const Reader = () => {
     useEffect(() => {
         const fetchBook = async () => {
             try {
-                const res = await axios.get('http://localhost:3000/books/public');
+                const res = await axios.get('http://localhost:3055/books/public');
                 const book = res.data.find(b => b.slug === id);
                 if (book) {
                     // Unique View Logic: Check localStorage for this specific book slug
                     const viewKey = `viewed_${id}`;
                     if (!localStorage.getItem(viewKey)) {
                         // Increment view count only if not already viewed in this browser
-                        axios.post(`http://localhost:3000/books/view/${id}`)
+                        axios.post(`http://localhost:3055/books/view/${id}`)
                             .then(() => {
                                 localStorage.setItem(viewKey, 'true');
                             })
@@ -32,7 +32,7 @@ const Reader = () => {
         fetchBook();
     }, [id]);
 
-    const pdfUrl = id ? `http://localhost:3000/uploads/${id}.pdf` : '';
+    const pdfUrl = id ? `http://localhost:3055/uploads/${id}.pdf` : '';
     // We'll use the slug directly as most of our PDFs follow the slug name pattern or we can fetch it.
     // However, the best is to fetch the book object to get the EXACT pdfPath.
 
@@ -41,10 +41,10 @@ const Reader = () => {
     useEffect(() => {
         const getBookDetails = async () => {
             try {
-                const res = await axios.get('http://localhost:3000/books/public');
+                const res = await axios.get('http://localhost:3055/books/public');
                 const book = res.data.find(b => b.slug === id);
                 if (book) {
-                    setActualPdfUrl(`http://localhost:3000/uploads/${book.pdfPath}`);
+                    setActualPdfUrl(`http://localhost:3055/uploads/${book.pdfPath}`);
                 }
             } catch (e) { }
         };
