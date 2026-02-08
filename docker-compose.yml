@@ -8,6 +8,8 @@ services:
     ports:
       - "3055:3055"
     volumes:
+      - ./server:/app
+      - /app/node_modules
       - ./server/uploads:/app/uploads
       - ./server/prisma/dev.db:/app/prisma/dev.db
     environment:
