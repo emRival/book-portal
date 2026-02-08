@@ -47,7 +47,8 @@ router.get('/categories/list', async (req, res) => {
         });
         res.json(categories.map(c => c.category));
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch categories' });
+        console.error("Error fetching categories:", error);
+        res.status(500).json({ error: 'Failed to fetch categories', details: error.message });
     }
 });
 
@@ -60,7 +61,8 @@ router.get('/public', async (req, res) => {
         });
         res.json(books);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch books' });
+        console.error("Error fetching public books:", error);
+        res.status(500).json({ error: 'Failed to fetch books', details: error.message });
     }
 });
 
