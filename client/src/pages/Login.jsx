@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
@@ -7,9 +7,20 @@ const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [registrationEnabled, setRegistrationEnabled] = useState(true);
     const navigate = useNavigate();
 
     const [isRegistering, setIsRegistering] = useState(false);
+
+    useEffect(() => {
+        axios.get(`${API_BASE_URL}/auth/settings`)
+            .then(res => {
+                setRegistrationEnabled(res.data.registrationEnabled);
+                // If currently registering but disabled, switch back to login
+                if (!res.data.registrationEnabled) setIsRegistering(false);
+            })
+            .catch(() => setRegistrationEnabled(true));
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -95,9 +106,15 @@ const Login = () => {
                 </form>
 
                 <div className="mt-8 pt-6 border-t border-black/5">
-                    <button onClick={() => setIsRegistering(!isRegistering)} className="text-[10px] font-mono opacity-40 hover:opacity-100 underline">
-                        {isRegistering ? 'Return to Login' : 'Initialize New Identity (Register)'}
-                    </button>
+                    {registrationEnabled ? (
+                        <button onClick={() => setIsRegistering(!isRegistering)} className="text-[10px] font-mono opacity-40 hover:opacity-100 underline">
+                            {isRegistering ? 'Return to Login' : 'Initialize New Identity (Register)'}
+                        </button>
+                    ) : (
+                        <p className="text-[10px] font-mono opacity-40 italic">
+                            Registration is currently closed by the administrator.
+                        </p>
+                    )}
                 </div>
             </div>
         </div>
