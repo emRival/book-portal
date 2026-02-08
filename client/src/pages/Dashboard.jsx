@@ -14,7 +14,7 @@ const Dashboard = () => {
     const [books, setBooks] = useState([]);
     const [highestViewBook, setHighestViewBook] = useState(null);
     const [title, setTitle] = useState('');
-    const [author, setAuthor] = useState('');
+    // const [author, setAuthor] = useState(''); // Author is now automated
     const [file, setFile] = useState(null);
     const [cover, setCover] = useState(null);
     const [category, setCategory] = useState('General');
@@ -55,7 +55,7 @@ const Dashboard = () => {
         setLoading(true);
         const formData = new FormData();
         formData.append('title', title);
-        formData.append('author', author);
+        // formData.append('author', author); // Automated on backend
         formData.append('category', category);
         formData.append('pdf', file);
         if (cover) {
@@ -102,7 +102,7 @@ const Dashboard = () => {
             });
             fetchBooks();
             setTitle('');
-            setAuthor('');
+            // setAuthor('');
             setCategory('General');
             setFile(null);
             setCover(null);
@@ -218,16 +218,7 @@ const Dashboard = () => {
                                     required
                                 />
                             </div>
-                            <div>
-                                <label className="block text-[10px] font-mono uppercase mb-1">Author</label>
-                                <input
-                                    type="text"
-                                    value={author}
-                                    onChange={e => setAuthor(e.target.value)}
-                                    className="w-full bg-bg-soft border border-black/10 p-2 font-mono text-sm"
-                                    required
-                                />
-                            </div>
+                            {/* Author input removed - automated from login */}
                             <div>
                                 <label className="block text-[10px] font-mono uppercase mb-1">Category / Tag</label>
                                 <input

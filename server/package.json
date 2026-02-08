@@ -4,8 +4,8 @@
     "description": "Backend for IDN Book Flipbook App",
     "main": "src/index.js",
     "scripts": {
-        "start": "npx prisma migrate deploy && node src/index.js",
-        "dev": "npx prisma migrate deploy && nodemon src/index.js"
+        "start": "npx prisma db push && node src/index.js",
+        "dev": "npx prisma db push && nodemon src/index.js"
     },
     "dependencies": {
         "@prisma/client": "^5.10.0",

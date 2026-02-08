@@ -34,7 +34,7 @@ const limiter = rateLimit({
 app.use('/auth', limiter); // Apply to auth routes
 
 // Static files (for uploaded PDFs and covers)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Routes
 app.use('/auth', authRoutes);

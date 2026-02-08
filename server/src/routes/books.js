@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 // Multer Storage Config
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const uploadPath = path.join(__dirname, '../../uploads');
+        const uploadPath = path.join(process.cwd(), 'uploads');
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
         }
@@ -73,7 +73,8 @@ router.get('/', authenticateToken, async (req, res) => {
         });
         res.json(books);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch your books' });
+        console.error("Error fetching user books:", error);
+        res.status(500).json({ error: 'Failed to fetch your books', details: error.message });
     }
 });
 
@@ -103,7 +104,7 @@ const sharp = require('sharp');
 // POST upload book (Protected)
 router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 }, { name: 'cover', maxCount: 1 }]), async (req, res) => {
     try {
-        const { title, author, category } = req.body;
+        const { title, category } = req.body;
 
         if (!req.files || !req.files.pdf) {
             return res.status(400).json({ error: 'PDF file is required' });
@@ -115,7 +116,7 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
         if (req.files.cover) {
             const originalCoverPath = req.files.cover[0].path;
             const compressedFilename = `compressed-${Date.now()}.webp`;
-            const compressedPath = path.join(__dirname, '../../uploads', compressedFilename);
+            const compressedPath = path.join(process.cwd(), 'uploads', compressedFilename);
 
             try {
                 // Resize to max 800px width and convert to webp for extreme speed
@@ -145,7 +146,7 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
         const book = await prisma.book.create({
             data: {
                 title,
-                author,
+                author: req.user.username,
                 category: category || "General",
                 slug,
                 pdfPath,
@@ -213,7 +214,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         }
 
         // Delete files
-        const uploadDir = path.join(__dirname, '../../uploads');
+        const uploadDir = path.join(process.cwd(), 'uploads');
         if (book.pdfPath) {
             const pPath = path.join(uploadDir, book.pdfPath);
             if (fs.existsSync(pPath)) fs.unlinkSync(pPath);
