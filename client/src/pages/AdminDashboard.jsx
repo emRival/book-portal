@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { Trash2, Library, LogOut, ShieldAlert, Activity, BarChart3, Users, BookOpen } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { API_BASE_URL } from '../config';
 
 const AdminDashboard = () => {
     const [books, setBooks] = useState([]);
@@ -20,7 +21,7 @@ const AdminDashboard = () => {
     const fetchAdminBooks = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:3055/books/admin', {
+            const res = await axios.get(`${API_BASE_URL}/books/admin`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setBooks(res.data);
@@ -34,7 +35,7 @@ const AdminDashboard = () => {
         if (!window.confirm('ADMIN DELETE: Are you sure?')) return;
         const token = localStorage.getItem('token');
         try {
-            await axios.delete(`http://localhost:3055/books/${id}`, {
+            await axios.delete(`${API_BASE_URL}/books/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchAdminBooks();

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { Book as BookIcon, ArrowRight, Share2, BarChart3, Activity, ShieldAlert, Cpu } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const Home = () => {
     const [books, setBooks] = useState([]);
@@ -15,8 +16,8 @@ const Home = () => {
         const fetchData = async () => {
             try {
                 const [booksRes, categoriesRes] = await Promise.all([
-                    axios.get('http://localhost:3055/books/public'),
-                    axios.get('http://localhost:3055/books/categories/list')
+                    axios.get(`${API_BASE_URL}/books/public`),
+                    axios.get(`${API_BASE_URL}/books/categories/list`)
                 ]);
                 setBooks(booksRes.data);
                 setCategories(categoriesRes.data);
@@ -221,7 +222,7 @@ const Home = () => {
                                             <div className="aspect-[3/4] bg-gray-50 border border-black/5 relative overflow-hidden mb-8">
                                                 {book.coverImage ? (
                                                     <img
-                                                        src={`http://localhost:3055/uploads/${book.coverImage}`}
+                                                        src={`${API_BASE_URL}/uploads/${book.coverImage}`}
                                                         className="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 scale-100 group-hover:scale-105"
                                                     />
                                                 ) : (
