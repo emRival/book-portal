@@ -148,7 +148,7 @@ const Home = () => {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-12 grid grid-cols-1 lg:grid-cols-2 gap-24 py-32 items-center">
+            <main className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 py-16 lg:py-32 items-center">
                 <section className="flex flex-col justify-center">
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.8] tracking-tighter mb-8">
                         READ<br />THE<br />STUDENT.
@@ -213,7 +213,7 @@ const Home = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16">
+                            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 lg:gap-16">
                                 {loading ? (
                                     Array(4).fill(0).map((_, i) => <SkeletonCard key={i} />)
                                 ) : (

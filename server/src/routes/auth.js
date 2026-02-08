@@ -71,4 +71,50 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// ADMIN: Get all users
+router.get('/users', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Access denied' });
+    try {
+        const users = await prisma.user.findMany({
+            select: { id: true, username: true, role: true, createdAt: true },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
+// ADMIN: Delete user
+router.delete('/users/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Access denied' });
+    try {
+        const userId = parseInt(req.params.id);
+        // Prevent deleting yourself
+        if (userId === req.user.userId) return res.status(400).json({ error: 'Cannot delete your own admin account' });
+
+        await prisma.user.delete({ where: { id: userId } });
+        res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete user' });
+    }
+});
+
+// ADMIN: Reset Password
+router.post('/users/:id/reset-password', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Access denied' });
+    try {
+        const userId = parseInt(req.params.id);
+        const newPassword = await bcrypt.hash('idn123', 10); // Default reset password
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: newPassword }
+        });
+        res.json({ message: 'Password reset to "idn123"' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to reset password' });
+    }
+});
+
 module.exports = router;
