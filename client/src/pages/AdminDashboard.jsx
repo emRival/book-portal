@@ -91,6 +91,22 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleBanToggle = async (user) => {
+        const action = user.isBanned ? 'unban' : 'ban';
+        if (!window.confirm(`${action.toUpperCase()} USER: Are you sure you want to ${action} ${user.username}?`)) return;
+
+        const token = localStorage.getItem('token');
+        try {
+            await axios.put(`${API_BASE_URL}/auth/users/${user.id}/${action}`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            alert(`User ${action}ned successfully`);
+            fetchUsers();
+        } catch (error) {
+            alert(error.response?.data?.error || 'Action failed');
+        }
+    };
+
     const logout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('username');
@@ -179,8 +195,8 @@ const AdminDashboard = () => {
 
                 {activeTab === 'books' && (
                     <div className="space-y-8">
-                        {/* Systems Chart */}
-                        <div className="bg-gray-800 border border-gray-700 p-6 rounded-lg hidden md:block">
+                        {/* Systems Chart - Only render on desktop to avoid Recharts 0x0 warning */}
+                        <div className="hidden md:block bg-gray-800 border border-gray-700 p-6 rounded-lg">
                             <h2 className="text-sm font-bold mb-6 text-gray-400 flex items-center gap-2">
                                 <BarChart3 size={14} /> TRAFFIC_VISUALIZER
                             </h2>
