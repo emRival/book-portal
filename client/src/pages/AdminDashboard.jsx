@@ -10,6 +10,7 @@ const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
     const [activeTab, setActiveTab] = useState('books'); // 'books' or 'users'
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [registrationEnabled, setRegistrationEnabled] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -24,6 +25,30 @@ const AdminDashboard = () => {
     const fetchData = () => {
         fetchAdminBooks();
         fetchUsers();
+        fetchSettings();
+    };
+
+    const fetchSettings = async () => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/auth/settings`);
+            setRegistrationEnabled(res.data.registrationEnabled);
+        } catch (error) {
+            console.error('Failed to fetch settings');
+        }
+    };
+
+    const handleToggleRegistration = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const newState = !registrationEnabled;
+            await axios.put(`${API_BASE_URL}/auth/settings`, { registrationEnabled: newState }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setRegistrationEnabled(newState);
+            alert(`Registration is now ${newState ? 'OPEN' : 'CLOSED'}`);
+        } catch (error) {
+            alert('Failed to update settings');
+        }
     };
 
     const fetchAdminBooks = async () => {
@@ -126,6 +151,17 @@ const AdminDashboard = () => {
                         <span className="hidden md:block text-[10px] font-bold uppercase tracking-widest opacity-40">System Override Protocol</span>
                     </div>
 
+                    {/* Registration Toggle */}
+                    <div className="hidden md:flex items-center gap-3 mr-auto ml-12">
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">REGISTRATION:</span>
+                        <button
+                            onClick={handleToggleRegistration}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors ${registrationEnabled ? 'bg-green-500/20' : 'bg-red-500/20'}`}
+                        >
+                            <div className={`w-4 h-4 rounded-full shadow-md transition-transform ${registrationEnabled ? 'translate-x-6 bg-green-500' : 'translate-x-0 bg-red-500'}`}></div>
+                        </button>
+                    </div>
+
                     {/* Desktop Hooks */}
                     <div className="hidden md:flex items-center gap-6">
                         <button
@@ -158,6 +194,15 @@ const AdminDashboard = () => {
                 {/* Mobile Menu */}
                 {mobileMenuOpen && (
                     <div className="md:hidden bg-gray-800 border-b border-gray-700 p-6 space-y-4">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-xs font-bold uppercase tracking-widest opacity-60">REGISTRATION</span>
+                            <button
+                                onClick={handleToggleRegistration}
+                                className={`w-12 h-6 rounded-full p-1 transition-colors ${registrationEnabled ? 'bg-green-500/20' : 'bg-red-500/20'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full shadow-md transition-transform ${registrationEnabled ? 'translate-x-6 bg-green-500' : 'translate-x-0 bg-red-500'}`}></div>
+                            </button>
+                        </div>
                         <button onClick={() => { setActiveTab('books'); setMobileMenuOpen(false); }} className="block w-full text-left font-bold text-sm text-red-400">DATABASE</button>
                         <button onClick={() => { setActiveTab('users'); setMobileMenuOpen(false); }} className="block w-full text-left font-bold text-sm text-red-400">USER BASE</button>
                         <hr className="border-gray-700" />
@@ -336,18 +381,30 @@ const AdminDashboard = () => {
                                 <div key={user.id} className="p-4 space-y-3">
                                     <div className="flex justify-between items-center">
                                         <h3 className="font-bold text-lg">{user.username}</h3>
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${user.role === 'ADMIN' ? 'bg-red-500 text-white' : 'bg-blue-500/20 text-blue-400'}`}>
-                                            {user.role}
-                                        </span>
+                                        <div className="flex gap-2">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${user.isBanned ? 'bg-red-900/50 text-red-200' : 'bg-green-500/20 text-green-400'}`}>
+                                                {user.isBanned ? 'BANNED' : 'ACTIVE'}
+                                            </span>
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${user.role === 'ADMIN' ? 'bg-red-500 text-white' : 'bg-blue-500/20 text-blue-400'}`}>
+                                                {user.role}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="text-xs opacity-50">Joined: {new Date(user.createdAt).toLocaleDateString()}</div>
+                                    <div className="text-xs opacity-50 space-y-1">
+                                        <div>Joined: {new Date(user.createdAt).toLocaleDateString()}</div>
+                                        <div>Last Login: {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Never'}</div>
+                                        <div>IP: {user.lastLoginIp || '-'}</div>
+                                    </div>
                                     <div className="flex gap-2 pt-2">
                                         <button onClick={() => handleResetPassword(user.id)} className="flex-1 bg-gray-700 p-2 rounded text-xs font-bold text-center">
                                             Reset Password
                                         </button>
                                         {user.role !== 'ADMIN' && (
-                                            <button onClick={() => handleDeleteUser(user.id)} className="flex-1 bg-red-900/50 text-red-200 p-2 rounded text-xs font-bold text-center">
-                                                Ban User
+                                            <button
+                                                onClick={() => handleBanToggle(user)}
+                                                className={`flex-1 p-2 rounded text-xs font-bold text-center ${user.isBanned ? 'bg-green-900/50 text-green-200' : 'bg-red-900/50 text-red-200'}`}
+                                            >
+                                                {user.isBanned ? 'Unban User' : 'Ban User'}
                                             </button>
                                         )}
                                     </div>

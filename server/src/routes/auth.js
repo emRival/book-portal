@@ -10,6 +10,12 @@ const prisma = new PrismaClient();
 // Register (Can be used to seed the first user)
 router.post('/register', async (req, res) => {
     try {
+        // Check if registration is enabled
+        const settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
+        if (settings && !settings.registrationEnabled) {
+            return res.status(403).json({ error: 'Registration is currently closed by the administrator.' });
+        }
+
         const { username, password } = req.body;
 
         // Validation
@@ -43,6 +49,36 @@ router.post('/register', async (req, res) => {
     } catch (error) {
         console.error('Registration Error:', error);
         res.status(500).json({ error: 'Registration failed', details: error.message });
+    }
+});
+
+// GET Settings (Public)
+router.get('/settings', async (req, res) => {
+    try {
+        let settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
+        // Create default if not exists
+        if (!settings) {
+            settings = await prisma.systemSettings.create({ data: { id: 1, registrationEnabled: true } });
+        }
+        res.json(settings);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+});
+
+// ADMIN: Update Settings
+router.put('/settings', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Access denied' });
+    try {
+        const { registrationEnabled } = req.body;
+        const settings = await prisma.systemSettings.upsert({
+            where: { id: 1 },
+            update: { registrationEnabled },
+            create: { id: 1, registrationEnabled }
+        });
+        res.json(settings);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update settings' });
     }
 });
 

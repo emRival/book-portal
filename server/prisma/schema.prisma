@@ -40,3 +40,8 @@ model Book {
   lastLoginIp String?
   updatedAt   DateTime @updatedAt
 }
+
+model SystemSettings {
+  id                  Int     @id @default(1)
+  registrationEnabled Boolean @default(true)
+}
