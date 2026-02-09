@@ -310,21 +310,27 @@ const AdminDashboard = () => {
                             <h2 className="text-sm font-bold mb-6 text-gray-400 flex items-center gap-2">
                                 <BarChart3 size={14} /> TRAFFIC_VISUALIZER
                             </h2>
-                            <div className="h-[200px] w-full">
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                    <AreaChart data={books.slice(0, 10).reverse()}>
-                                        <defs>
-                                            <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
-                                        <XAxis dataKey="title" hide />
-                                        <Tooltip contentStyle={{ backgroundColor: '#111827', border: 'none' }} />
-                                        <Area type="monotone" dataKey="views" stroke="#ef4444" fillOpacity={1} fill="url(#colorViews)" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
+                            <div className="h-[200px] w-full relative">
+                                <div className="absolute inset-0">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={books.slice(0, 10).reverse()}>
+                                            <defs>
+                                                <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
+                                            <XAxis dataKey="title" hide />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#111827', border: 'none', borderRadius: '0.5rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
+                                                itemStyle={{ color: '#ef4444' }}
+                                                cursor={{ stroke: '#ef4444', strokeWidth: 1 }}
+                                            />
+                                            <Area type="monotone" dataKey="views" stroke="#ef4444" fillOpacity={1} fill="url(#colorViews)" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
                             </div>
                         </div>
 
