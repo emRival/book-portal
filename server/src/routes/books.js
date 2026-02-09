@@ -6,6 +6,8 @@ const fs = require('fs');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { exec } = require('child_process'); // For Ghostscript
+const util = require('util');
+const execPromise = util.promisify(exec);
 
 const prisma = new PrismaClient();
 
@@ -197,18 +199,82 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                 const compressedPdfFilename = `compressed-${Date.now()}.pdf`;
                 const compressedPdfPath = path.join(process.cwd(), 'uploads', compressedPdfFilename);
 
-                // Run Ghostscript
-                await new Promise((resolve, reject) => {
+                // Helper to get page count
+                const getPageCount = async (filePath) => {
+                    try {
+                        // Ghostscript command to count pages
+                        const cmd = `gs -q -dNODISPLAY -c "(${filePath}) (r) file runpdfbegin pdfpagecount = quit"`;
+                        const { stdout } = await execPromise(cmd);
+                        return parseInt(stdout.trim()) || 0;
+                    } catch (e) {
+                        console.error("Error counting pages:", e);
+                        return 0;
+                    }
+                };
+
+                const totalPages = await getPageCount(originalPdfAbsolutePath);
+                console.log(`[Background] Total pages for ${slug}: ${totalPages}`);
+
+                // Parallel Chunking Strategy
+                const CHUNK_SIZE = 10;
+                const CONCURRENCY_LIMIT = 5;
+
+                // Only use chunking if pages > 20 (otherwise single pass is fine)
+                if (totalPages > 20) {
+                    console.log(`[Background] Using Parallel Chunking (Pages: ${totalPages}, Chunk: ${CHUNK_SIZE})`);
+
+                    const chunks = [];
+                    const chunkFiles = [];
+                    const tempDir = path.join(process.cwd(), 'uploads', `temp-${book.id}-${Date.now()}`);
+                    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+
+                    // Create chunks
+                    for (let i = 1; i <= totalPages; i += CHUNK_SIZE) {
+                        const start = i;
+                        const end = Math.min(i + CHUNK_SIZE - 1, totalPages);
+                        chunks.push({ start, end, index: chunks.length });
+                    }
+
+                    // Process chunks with concurrency control
+                    const processChunk = async (chunk) => {
+                        const chunkFilename = `chunk-${chunk.index.toString().padStart(4, '0')}.pdf`;
+                        const chunkPath = path.join(tempDir, chunkFilename);
+                        chunkFiles.push(chunkPath);
+
+                        const cmd = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dFirstPage=${chunk.start} -dLastPage=${chunk.end} -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${chunkPath}" "${originalPdfAbsolutePath}"`;
+                        await execPromise(cmd);
+                        return chunkPath;
+                    };
+
+                    // Run in batches
+                    for (let i = 0; i < chunks.length; i += CONCURRENCY_LIMIT) {
+                        const batch = chunks.slice(i, i + CONCURRENCY_LIMIT);
+                        await Promise.all(batch.map(processChunk));
+                        console.log(`[Background] Processed batch ${i / CONCURRENCY_LIMIT + 1}/${Math.ceil(chunks.length / CONCURRENCY_LIMIT)}`);
+                    }
+
+                    // Sort chunk files to ensure correct order (though we pushed in order)
+                    chunkFiles.sort();
+
+                    // Merge Chunks
+                    console.log(`[Background] Merging ${chunkFiles.length} chunks...`);
+                    // Use a file list for GS to avoid command line length limits if many chunks
+                    // But for now, direct arg passing is likely fine for reasonable sizes.
+                    // If too many files, we could write a response file (check GS docs for @filelist), 
+                    // but standard exec might hit limits.
+                    // Construct command strictly with sorted chunk list.
+                    const mergeCmd = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${compressedPdfPath}" ${chunkFiles.map(f => `"${f}"`).join(' ')}`;
+                    await execPromise(mergeCmd);
+
+                    // Cleanup Temp
+                    fs.rmSync(tempDir, { recursive: true, force: true });
+
+                } else {
+                    // Standard single-pass compression for small page count
+                    console.log(`[Background] Using Single-Pass Compression (Pages: ${totalPages})`);
                     const command = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${compressedPdfPath}" "${originalPdfAbsolutePath}"`;
-                    exec(command, (error, stdout, stderr) => {
-                        if (error) {
-                            console.error("[Background] Ghostscript error:", stderr);
-                            reject(error);
-                        } else {
-                            resolve();
-                        }
-                    });
-                });
+                    await execPromise(command);
+                }
 
                 // Check new size
                 const newStats = fs.statSync(compressedPdfPath);
@@ -332,13 +398,61 @@ router.get('/share/:slug', async (req, res) => {
                 <meta property="twitter:description" content="${description}" />
                 <meta property="twitter:image" content="${coverUrl}" />
 
+                <style>
+                    body {
+                        font-family: 'Inter', sans-serif;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        height: 100vh;
+                        margin: 0;
+                        background-color: #f8f9fa;
+                        color: #333;
+                    }
+                    .loader {
+                        width: 48px;
+                        height: 48px;
+                        border: 5px solid #000;
+                        border-bottom-color: transparent;
+                        border-radius: 50%;
+                        display: inline-block;
+                        box-sizing: border-box;
+                        animation: rotation 1s linear infinite;
+                        margin-bottom: 20px;
+                    }
+                    @keyframes rotation {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                    p { font-size: 1.2rem; margin-bottom: 2rem; }
+                    .btn {
+                        padding: 10px 20px;
+                        background-color: #000;
+                        color: #fff;
+                        text-decoration: none;
+                        border-radius: 4px;
+                        font-weight: bold;
+                    }
+                </style>
                 <script>
-                    // Redirect to actual book reader
-                    window.location.href = "${bookUrl}";
+                    let timeLeft = 3;
+                    function updateTimer() {
+                        document.getElementById('timer').innerText = timeLeft;
+                        if (timeLeft <= 0) {
+                            window.location.href = "${bookUrl}";
+                        } else {
+                            timeLeft--;
+                            setTimeout(updateTimer, 1000);
+                        }
+                    }
+                    window.onload = updateTimer;
                 </script>
             </head>
             <body>
-                <p>Redirecting to <a href="${bookUrl}">${book.title}</a>...</p>
+                <span class="loader"></span>
+                <p>Redirecting to <strong>${book.title}</strong> in <span id="timer">3</span> seconds...</p>
+                <a href="${bookUrl}" class="btn">Click here if not redirected</a>
             </body>
             </html>
         `;
