@@ -25,6 +25,7 @@ model Book {
   id          Int      @id @default(autoincrement())
   title       String
   author      String
+  description String?  // Optional description
   category    String   @default("General")
   slug        String   @unique
   coverImage  String?  // Path to cover image

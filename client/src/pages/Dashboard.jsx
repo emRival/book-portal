@@ -14,6 +14,7 @@ const Dashboard = () => {
     const [books, setBooks] = useState([]);
     const [highestViewBook, setHighestViewBook] = useState(null);
     const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
     // const [author, setAuthor] = useState(''); // Author is now automated
     const [file, setFile] = useState(null);
     const [cover, setCover] = useState(null);
@@ -55,6 +56,7 @@ const Dashboard = () => {
         setLoading(true);
         const formData = new FormData();
         formData.append('title', title);
+        formData.append('description', description);
         // formData.append('author', author); // Automated on backend
         formData.append('category', category);
         formData.append('pdf', file);
@@ -102,6 +104,7 @@ const Dashboard = () => {
             });
             fetchBooks();
             setTitle('');
+            setDescription('');
             // setAuthor('');
             setCategory('General');
             setFile(null);
@@ -226,6 +229,16 @@ const Dashboard = () => {
                                     required
                                 />
                             </div>
+                            <div>
+                                <label className="block text-[10px] font-mono uppercase mb-1">Description (Max 100 words)</label>
+                                <textarea
+                                    value={description}
+                                    onChange={e => setDescription(e.target.value)}
+                                    placeholder="Brief summary..."
+                                    className="w-full bg-bg-soft border border-black/10 p-2 font-mono text-sm h-24"
+                                    maxLength={500}
+                                />
+                            </div>
                             {/* Author input removed - automated from login */}
                             <div>
                                 <label className="block text-[10px] font-mono uppercase mb-1">Category / Tag</label>
@@ -314,8 +327,14 @@ const Dashboard = () => {
                             <div className="flex items-center gap-4">
                                 <button
                                     onClick={() => {
-                                        navigator.clipboard.writeText(`${window.location.origin}/read/${book.slug}`);
-                                        alert('Link copied to clipboard!');
+                                        // Use new share link structure: /share/slug (proxied to backend)
+                                        // Or if using client-side routing, we need to decide.
+                                        // The request was: "ketika share link nya ada /share/ nya"
+                                        // Backend route is /books/share/:slug
+                                        // Nginx will proxy /share/:slug -> /books/share/:slug
+                                        const shareUrl = `${window.location.origin}/share/${book.slug}`;
+                                        navigator.clipboard.writeText(shareUrl);
+                                        alert('Share link copied to clipboard: ' + shareUrl);
                                     }}
                                     className="text-xs font-bold px-4 py-2 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center gap-2"
                                 >

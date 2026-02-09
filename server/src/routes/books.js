@@ -115,7 +115,7 @@ const sharp = require('sharp');
 // POST upload book (Protected)
 router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 }, { name: 'cover', maxCount: 1 }]), async (req, res) => {
     try {
-        const { title, category } = req.body;
+        const { title, category, description } = req.body;
 
         if (!req.files || !req.files.pdf) {
             return res.status(400).json({ error: 'PDF file is required' });
@@ -165,6 +165,7 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                 title,
                 author: req.user.username,
                 category: category || "General",
+                description: description || "",
                 slug,
                 pdfPath: pdfPath, // Start with original
                 coverImage: coverPath,
@@ -178,6 +179,12 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
 
         // 4. Background Process: Compress PDF
         (async () => {
+            // Optimization: Skip compression if file < 20MB
+            if (initialFileSize < 20 * 1024 * 1024) {
+                console.log(`[Background] Skipping compression for book ${book.id} (${slug}) - Size ${initialFileSize} < 20MB`);
+                return;
+            }
+
             console.log(`[Background] Starting compression for book ${book.id} (${slug})`);
             try {
                 const compressedPdfFilename = `compressed-${Date.now()}.pdf`;
@@ -270,7 +277,7 @@ router.get('/share/:slug', async (req, res) => {
         const { slug } = req.params;
         const book = await prisma.book.findUnique({
             where: { slug },
-            select: { title: true, coverImage: true, category: true, author: true }
+            select: { title: true, coverImage: true, category: true, author: true, description: true }
         });
 
         if (!book) return res.status(404).send('Book not found');
@@ -280,6 +287,7 @@ router.get('/share/:slug', async (req, res) => {
         const domain = process.env.DOMAIN || 'https://book.idnbogor.id';
         const coverUrl = book.coverImage ? `${domain}/uploads/${book.coverImage}` : `${domain}/default-cover.png`;
         const bookUrl = `${domain}/book/${slug}`; // Frontend viewer URL
+        const description = book.description || `Read '${book.title}' by ${book.author} on IDN Book. Category: ${book.category}`;
 
         const html = `
             <!DOCTYPE html>
@@ -293,7 +301,7 @@ router.get('/share/:slug', async (req, res) => {
                 <meta property="og:type" content="book" />
                 <meta property="og:url" content="${bookUrl}" />
                 <meta property="og:title" content="${book.title}" />
-                <meta property="og:description" content="Read '${book.title}' by ${book.author} on IDN Book. Category: ${book.category}" />
+                <meta property="og:description" content="${description}" />
                 <meta property="og:image" content="${coverUrl}" />
                 <meta property="og:image:width" content="800" />
 
@@ -301,7 +309,7 @@ router.get('/share/:slug', async (req, res) => {
                 <meta property="twitter:card" content="summary_large_image" />
                 <meta property="twitter:url" content="${bookUrl}" />
                 <meta property="twitter:title" content="${book.title}" />
-                <meta property="twitter:description" content="Read '${book.title}' by ${book.author} on IDN Book." />
+                <meta property="twitter:description" content="${description}" />
                 <meta property="twitter:image" content="${coverUrl}" />
 
                 <script>
