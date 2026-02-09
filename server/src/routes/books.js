@@ -203,7 +203,8 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                 const getPageCount = async (filePath) => {
                     try {
                         // Ghostscript command to count pages
-                        const cmd = `gs -q -dNODISPLAY -c "(${filePath}) (r) file runpdfbegin pdfpagecount = quit"`;
+                        // Added -dNOSAFER to allow file access via PostScript 'file' operator
+                        const cmd = `gs -dNOSAFER -q -dNODISPLAY -c "(${filePath}) (r) file runpdfbegin pdfpagecount = quit"`;
                         const { stdout } = await execPromise(cmd);
                         return parseInt(stdout.trim()) || 0;
                     } catch (e) {
