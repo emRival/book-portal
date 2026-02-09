@@ -6,6 +6,7 @@ import { useRef } from 'react';
 import { pdfjs } from 'react-pdf';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { API_BASE_URL } from '../config';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 
 // Ensure worker is set for cover generation using a matching CDN version
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -24,6 +25,7 @@ const Dashboard = () => {
     const fileInputRef = useRef(null);
     const coverInputRef = useRef(null);
     const navigate = useNavigate();
+    const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
     useEffect(() => {
         fetchBooks();
@@ -158,11 +160,19 @@ const Dashboard = () => {
                     <Link to="/" className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest hover:text-cobalt-primary">
                         <Library size={16} /> Public Grid
                     </Link>
+                    <button onClick={() => setIsChangePasswordOpen(true)} className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest hover:text-cobalt-primary">
+                        <span className="w-2 h-2 bg-cobalt-primary rounded-full"></span> Security
+                    </button>
                     <button onClick={logout} className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest hover:text-red-600">
                         <LogOut size={16} /> Logout
                     </button>
                 </div>
             </header>
+
+            <ChangePasswordModal
+                isOpen={isChangePasswordOpen}
+                onClose={() => setIsChangePasswordOpen(false)}
+            />
 
             {/* Stats Overview */}
             {highestViewBook && (

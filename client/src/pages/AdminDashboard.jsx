@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Trash2, Library, LogOut, ShieldAlert, Activity, BarChart3, Users, BookOpen, Lock, UserX, Menu, X } from 'lucide-react';
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { API_BASE_URL } from '../config';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 
 const AdminDashboard = () => {
     const [books, setBooks] = useState([]);
@@ -11,6 +12,7 @@ const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('books'); // 'books' or 'users'
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [registrationEnabled, setRegistrationEnabled] = useState(true);
+    const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -181,10 +183,18 @@ const AdminDashboard = () => {
                         <Link to="/" className="text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100 hover:text-red-500 flex items-center gap-2">
                             <Library size={14} /> Grid
                         </Link>
+                        <button onClick={() => setIsChangePasswordOpen(true)} className="text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100 hover:text-red-500 flex items-center gap-2">
+                            <Lock size={14} /> Security
+                        </button>
                         <button onClick={logout} className="text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100 hover:text-red-500 flex items-center gap-2">
                             <LogOut size={14} /> Exit
                         </button>
                     </div>
+
+                    <ChangePasswordModal
+                        isOpen={isChangePasswordOpen}
+                        onClose={() => setIsChangePasswordOpen(false)}
+                    />
 
                     {/* Mobile Menu Toggle */}
                     <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>

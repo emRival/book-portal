@@ -135,6 +135,42 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Change Password (User & Admin)
+router.post('/change-password', authenticateToken, async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.user.userId;
+        const userRole = req.user.role;
+
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({ error: 'New password must be at least 6 characters' });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        // If USER, force old password check
+        // If ADMIN, check old password ONLY IF provided (optional)
+        if (userRole !== 'ADMIN' || oldPassword) {
+            const validPassword = await bcrypt.compare(oldPassword, user.password);
+            if (!validPassword) {
+                return res.status(401).json({ error: 'Incorrect old password' });
+            }
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+
+        res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+        console.error('Change Password Error:', error);
+        res.status(500).json({ error: 'Failed to update password' });
+    }
+});
+
 // ADMIN: Get all users
 router.get('/users', authenticateToken, async (req, res) => {
     if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Access denied' });
