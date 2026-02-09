@@ -75,7 +75,7 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className={`w-full max-w-md p-6 relative ${theme.container}`}>
                 <button
                     onClick={onClose}

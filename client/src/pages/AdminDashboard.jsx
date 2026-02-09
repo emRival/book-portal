@@ -234,21 +234,6 @@ const AdminDashboard = () => {
                         </button>
                     </div>
 
-                    <ChangePasswordModal
-                        isOpen={isChangePasswordOpen}
-                        onClose={() => setIsChangePasswordOpen(false)}
-                    />
-
-                    <ConfirmationModal
-                        isOpen={confirmation.isOpen}
-                        onClose={() => setConfirmation({ ...confirmation, isOpen: false })}
-                        onConfirm={confirmation.onConfirm}
-                        title={confirmation.title}
-                        message={confirmation.message}
-                        confirmText={confirmation.confirmText}
-                        isDanger={confirmation.isDanger}
-                    />
-
                     {/* Mobile Menu Toggle */}
                     <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                         {mobileMenuOpen ? <X /> : <Menu />}
@@ -275,6 +260,22 @@ const AdminDashboard = () => {
                     </div>
                 )}
             </header>
+
+            {/* Modals - Rendered at top level to ensure Z-Index priority */}
+            <ChangePasswordModal
+                isOpen={isChangePasswordOpen}
+                onClose={() => setIsChangePasswordOpen(false)}
+            />
+
+            <ConfirmationModal
+                isOpen={confirmation.isOpen}
+                onClose={() => setConfirmation({ ...confirmation, isOpen: false })}
+                onConfirm={confirmation.onConfirm}
+                title={confirmation.title}
+                message={confirmation.message}
+                confirmText={confirmation.confirmText}
+                isDanger={confirmation.isDanger}
+            />
 
             <div className="max-w-7xl mx-auto pt-32 pb-12 px-6">
                 {/* Overview Stats - Scrollable on mobile */}

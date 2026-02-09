@@ -25,7 +25,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
     };
 
     return (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className={`w-full max-w-sm p-6 relative ${theme.container}`}>
                 <button
                     onClick={onClose}
