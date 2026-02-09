@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import Home from './pages/Home';
 import Reader from './pages/Reader';
+import BookDetail from './pages/BookDetail';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -19,6 +20,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/read/:id" element={<Reader />} />
+          <Route path="/book/:slug" element={<BookDetail />} />
           <Route
             path="/dashboard"
             element={
