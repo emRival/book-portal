@@ -7,6 +7,7 @@ import { pdfjs } from 'react-pdf';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { API_BASE_URL } from '../config';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 // Ensure worker is set for cover generation using a matching CDN version
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -26,6 +27,10 @@ const Dashboard = () => {
     const coverInputRef = useRef(null);
     const navigate = useNavigate();
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+
+    // Modal State
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [bookToDelete, setBookToDelete] = useState(null);
 
     useEffect(() => {
         fetchBooks();
@@ -121,17 +126,22 @@ const Dashboard = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure?')) return;
+    const confirmDelete = async () => {
+        if (!bookToDelete) return;
         const token = localStorage.getItem('token');
         try {
-            await axios.delete(`${API_BASE_URL}/books/${id}`, {
+            await axios.delete(`${API_BASE_URL}/books/${bookToDelete}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchBooks();
         } catch (error) {
             alert('Delete failed');
         }
+    };
+
+    const handleDelete = (id) => {
+        setBookToDelete(id);
+        setDeleteModalOpen(true);
     };
 
     const formatFileSize = (bytes) => {
@@ -172,6 +182,16 @@ const Dashboard = () => {
             <ChangePasswordModal
                 isOpen={isChangePasswordOpen}
                 onClose={() => setIsChangePasswordOpen(false)}
+            />
+
+            <ConfirmationModal
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="DELETE MATERIAL"
+                message="Are you sure you want to delete this material? This action cannot be undone."
+                confirmText="DELETE PERMANENTLY"
+                isDanger={true}
             />
 
             {/* Stats Overview */}

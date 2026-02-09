@@ -5,6 +5,7 @@ import { Trash2, Library, LogOut, ShieldAlert, Activity, BarChart3, Users, BookO
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { API_BASE_URL } from '../config';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const AdminDashboard = () => {
     const [books, setBooks] = useState([]);
@@ -13,6 +14,17 @@ const AdminDashboard = () => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [registrationEnabled, setRegistrationEnabled] = useState(true);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+
+    // Generic Confirmation Modal State
+    const [confirmation, setConfirmation] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        confirmText: 'Confirm',
+        isDanger: false,
+        onConfirm: () => { }
+    });
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -77,61 +89,92 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleDeleteBook = async (id) => {
-        if (!window.confirm('ADMIN DELETE: Are you sure?')) return;
-        const token = localStorage.getItem('token');
-        try {
-            await axios.delete(`${API_BASE_URL}/books/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            fetchAdminBooks();
-        } catch (error) {
-            alert('Delete failed');
-        }
+    const openConfirmation = (config) => {
+        setConfirmation({ ...config, isOpen: true });
     };
 
-    const handleDeleteUser = async (id) => {
-        if (!window.confirm('BAN USER: This will permanently delete the account and all their books. Cannot be undone. Continue?')) return;
-        const token = localStorage.getItem('token');
-        try {
-            await axios.delete(`${API_BASE_URL}/auth/users/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            alert('User deleted (Banned)');
-            fetchUsers();
-            fetchAdminBooks(); // Refresh books as user's books are gone or need update
-        } catch (error) {
-            alert(error.response?.data?.error || 'Delete failed');
-        }
+    const handleDeleteBook = (id) => {
+        openConfirmation({
+            title: 'DELETE MATERIAL',
+            message: 'ADMIN DELETE: Are you sure you want to delete this material? This cannot be undone.',
+            confirmText: 'DELETE',
+            isDanger: true,
+            onConfirm: async () => {
+                const token = localStorage.getItem('token');
+                try {
+                    await axios.delete(`${API_BASE_URL}/books/${id}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    fetchAdminBooks();
+                } catch (error) {
+                    alert('Delete failed');
+                }
+            }
+        });
     };
 
-    const handleResetPassword = async (id) => {
-        if (!window.confirm('Reset password to "idn123"?')) return;
-        const token = localStorage.getItem('token');
-        try {
-            await axios.post(`${API_BASE_URL}/auth/users/${id}/reset-password`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            alert('Password reset to "idn123"');
-        } catch (error) {
-            alert('Reset failed');
-        }
+    const handleDeleteUser = (id) => {
+        openConfirmation({
+            title: 'BAN USER (PERMANENT)',
+            message: 'This will permanently delete the account and all their books. Cannot be undone. Continue?',
+            confirmText: 'BAN USER',
+            isDanger: true,
+            onConfirm: async () => {
+                const token = localStorage.getItem('token');
+                try {
+                    await axios.delete(`${API_BASE_URL}/auth/users/${id}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    alert('User deleted (Banned)');
+                    fetchUsers();
+                    fetchAdminBooks();
+                } catch (error) {
+                    alert(error.response?.data?.error || 'Delete failed');
+                }
+            }
+        });
     };
 
-    const handleBanToggle = async (user) => {
+    const handleResetPassword = (id) => {
+        openConfirmation({
+            title: 'RESET PASSWORD',
+            message: 'Reset password to default "idn123"?',
+            confirmText: 'RESET',
+            isDanger: true,
+            onConfirm: async () => {
+                const token = localStorage.getItem('token');
+                try {
+                    await axios.post(`${API_BASE_URL}/auth/users/${id}/reset-password`, {}, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    alert('Password reset to "idn123"');
+                } catch (error) {
+                    alert('Reset failed');
+                }
+            }
+        });
+    };
+
+    const handleBanToggle = (user) => {
         const action = user.isBanned ? 'unban' : 'ban';
-        if (!window.confirm(`${action.toUpperCase()} USER: Are you sure you want to ${action} ${user.username}?`)) return;
-
-        const token = localStorage.getItem('token');
-        try {
-            await axios.put(`${API_BASE_URL}/auth/users/${user.id}/${action}`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            alert(`User ${action}ned successfully`);
-            fetchUsers();
-        } catch (error) {
-            alert(error.response?.data?.error || 'Action failed');
-        }
+        openConfirmation({
+            title: `${action.toUpperCase()} USER`,
+            message: `Are you sure you want to ${action} ${user.username}?`,
+            confirmText: action.toUpperCase(),
+            isDanger: action === 'ban',
+            onConfirm: async () => {
+                const token = localStorage.getItem('token');
+                try {
+                    await axios.put(`${API_BASE_URL}/auth/users/${user.id}/${action}`, {}, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    alert(`User ${action}ned successfully`);
+                    fetchUsers();
+                } catch (error) {
+                    alert(error.response?.data?.error || 'Action failed');
+                }
+            }
+        });
     };
 
     const logout = () => {
@@ -194,6 +237,16 @@ const AdminDashboard = () => {
                     <ChangePasswordModal
                         isOpen={isChangePasswordOpen}
                         onClose={() => setIsChangePasswordOpen(false)}
+                    />
+
+                    <ConfirmationModal
+                        isOpen={confirmation.isOpen}
+                        onClose={() => setConfirmation({ ...confirmation, isOpen: false })}
+                        onConfirm={confirmation.onConfirm}
+                        title={confirmation.title}
+                        message={confirmation.message}
+                        confirmText={confirmation.confirmText}
+                        isDanger={confirmation.isDanger}
                     />
 
                     {/* Mobile Menu Toggle */}
