@@ -145,42 +145,12 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
             }
         }
 
-        // Compress PDF using Ghostscript
-        let finalPdfPath = pdfPath;
-        try {
-            const originalPdfPath = path.join(process.cwd(), 'uploads', pdfPath);
-            const compressedPdfFilename = `compressed-${Date.now()}.pdf`;
-            const compressedPdfPath = path.join(process.cwd(), 'uploads', compressedPdfFilename);
+        // 1. Get stats of original uploaded file
+        const originalPdfAbsolutePath = path.join(process.cwd(), 'uploads', pdfPath);
+        const originalStats = fs.statSync(originalPdfAbsolutePath);
+        const initialFileSize = originalStats.size;
 
-            console.log(`Compressing PDF: ${originalPdfPath} -> ${compressedPdfPath}`);
-
-            await new Promise((resolve, reject) => {
-                const command = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${compressedPdfPath}" "${originalPdfPath}"`;
-                exec(command, (error, stdout, stderr) => {
-                    if (error) {
-                        console.error(`Ghostscript error: ${error.message}`);
-                        reject(error);
-                    } else {
-                        resolve();
-                    }
-                });
-            });
-
-            // If compression successful, delete original and use compressed
-            fs.unlinkSync(originalPdfPath);
-            finalPdfPath = compressedPdfFilename;
-            console.log("PDF Compression successful");
-
-        } catch (error) {
-            console.error("PDF Compression failed, using original file:", error);
-            // Fallback to original
-        }
-
-        // Calculate file size
-        const finalPathFull = path.join(process.cwd(), 'uploads', finalPdfPath);
-        const stats = fs.statSync(finalPathFull);
-        const fileSize = stats.size;
-
+        // 2. Create DB Record IMMEDIATELY (Prevent Cloudflare Timeout)
         // Ensure unique slug
         let baseSlug = createSlug(title);
         let slug = baseSlug;
@@ -196,18 +166,65 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                 author: req.user.username,
                 category: category || "General",
                 slug,
-                slug,
-                pdfPath: finalPdfPath,
+                pdfPath: pdfPath, // Start with original
                 coverImage: coverPath,
-                fileSize: fileSize,
+                fileSize: initialFileSize,
                 userId: req.user.userId
             }
         });
 
+        // 3. Respond to client immediately
         res.status(201).json(book);
+
+        // 4. Background Process: Compress PDF
+        (async () => {
+            console.log(`[Background] Starting compression for book ${book.id} (${slug})`);
+            try {
+                const compressedPdfFilename = `compressed-${Date.now()}.pdf`;
+                const compressedPdfPath = path.join(process.cwd(), 'uploads', compressedPdfFilename);
+
+                // Run Ghostscript
+                await new Promise((resolve, reject) => {
+                    const command = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${compressedPdfPath}" "${originalPdfAbsolutePath}"`;
+                    exec(command, (error, stdout, stderr) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+
+                // Check new size
+                const newStats = fs.statSync(compressedPdfPath);
+                const newFileSize = newStats.size;
+
+                console.log(`[Background] Compression success: ${initialFileSize} -> ${newFileSize} bytes`);
+
+                // Update DB
+                await prisma.book.update({
+                    where: { id: book.id },
+                    data: {
+                        pdfPath: compressedPdfFilename,
+                        fileSize: newFileSize
+                    }
+                });
+
+                // Delete original file
+                fs.unlinkSync(originalPdfAbsolutePath);
+                console.log(`[Background] Original file deleted: ${pdfPath}`);
+
+            } catch (error) {
+                console.error(`[Background] Compression failed for book ${book.id}:`, error);
+                // Keep the original file linkage since we already saved it
+            }
+        })();
+
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Failed to upload book', details: error.message });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to upload book', details: error.message });
+        }
     }
 });
 
