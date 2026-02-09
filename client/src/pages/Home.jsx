@@ -133,12 +133,10 @@ const Home = () => {
                     <h2 className="text-3xl font-extrabold tracking-tighter">IDN_BOOK PORTAL</h2>
                 </div>
                 <div className="flex gap-12 text-xs font-bold uppercase tracking-widest items-center">
-                    <a href="#archive" className="hover:opacity-60 transition-opacity">Archive</a>
-                    <a href="#" className="opacity-40 select-none hidden md:block">IDN_BS_PMJ</a>
                     {localStorage.getItem('token') ? (
                         <Link to={localStorage.getItem('role') === 'ADMIN' ? '/admin-dashboard' : '/dashboard'}
                             className="bg-black text-white px-8 py-3 hover:bg-gray-800 transition-all font-bold">
-                            ACCESS_SYSTEM
+                            DASHBOARD
                         </Link>
                     ) : (
                         <Link to="/login" className="bg-black text-white px-8 py-3 hover:bg-gray-800 transition-all font-bold">
@@ -213,7 +211,7 @@ const Home = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 lg:gap-16">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-8 lg:gap-16">
                                 {loading ? (
                                     Array(4).fill(0).map((_, i) => <SkeletonCard key={i} />)
                                 ) : (
