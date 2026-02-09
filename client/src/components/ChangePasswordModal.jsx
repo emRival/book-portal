@@ -53,69 +53,90 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
         }
     };
 
+    // Theme Configuration
+    const theme = isAdmin ? {
+        container: "bg-gray-900 border border-gray-700 text-white shadow-2xl shadow-red-900/20",
+        closeBtn: "text-gray-500 hover:text-white",
+        icon: "text-red-500",
+        inputLabel: "text-gray-400",
+        input: "bg-gray-800 border-gray-700 text-white focus:border-red-500 placeholder-gray-600",
+        button: "bg-red-600 hover:bg-red-700 text-white",
+        error: "bg-red-900/30 text-red-200 border-red-900/50",
+        success: "bg-green-900/30 text-green-200 border-green-900/50"
+    } : {
+        container: "bg-white border border-white/10 technical-glow text-black",
+        closeBtn: "text-black/40 hover:text-red-500",
+        icon: "text-cobalt-primary",
+        inputLabel: "opacity-60",
+        input: "bg-bg-soft border-black/10 text-black focus:border-cobalt-primary",
+        button: "bg-black hover:bg-cobalt-deep text-white",
+        error: "bg-red-50 text-red-600 border-red-100",
+        success: "bg-green-50 text-green-600 border-green-100"
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-white w-full max-w-md p-6 relative technical-glow border border-white/10">
+            <div className={`w-full max-w-md p-6 relative ${theme.container}`}>
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 text-black/40 hover:text-red-500 transition-colors"
+                    className={`absolute top-4 right-4 transition-colors ${theme.closeBtn}`}
                 >
                     <X size={20} />
                 </button>
 
                 <h2 className="text-xl font-black mb-6 flex items-center gap-2 tracking-tighter">
-                    <Lock size={20} className="text-cobalt-primary" />
+                    <Lock size={20} className={theme.icon} />
                     SECURITY_UPDATE
                 </h2>
 
                 {error && (
-                    <div className="bg-red-50 text-red-600 text-xs font-mono p-3 mb-4 border border-red-100 uppercase">
+                    <div className={`text-xs font-mono p-3 mb-4 border uppercase ${theme.error}`}>
                         ERR: {error}
                     </div>
                 )}
 
                 {success && (
-                    <div className="bg-green-50 text-green-600 text-xs font-mono p-3 mb-4 border border-green-100 uppercase">
+                    <div className={`text-xs font-mono p-3 mb-4 border uppercase ${theme.success}`}>
                         SUCCESS: {success}
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60">
+                        <label className={`block text-[10px] font-bold uppercase tracking-widest mb-1 ${theme.inputLabel}`}>
                             Current Protocol (Old Password)
                         </label>
                         <input
                             type="password"
                             value={oldPassword}
                             onChange={(e) => setOldPassword(e.target.value)}
-                            className="w-full bg-bg-soft border border-black/10 p-2 font-mono text-sm focus:border-cobalt-primary outline-none"
+                            className={`w-full p-3 font-mono text-sm border outline-none transition-colors ${theme.input}`}
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60">
+                        <label className={`block text-[10px] font-bold uppercase tracking-widest mb-1 ${theme.inputLabel}`}>
                             New Protocol (New Password)
                         </label>
                         <input
                             type="password"
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
-                            className="w-full bg-bg-soft border border-black/10 p-2 font-mono text-sm focus:border-cobalt-primary outline-none"
+                            className={`w-full p-3 font-mono text-sm border outline-none transition-colors ${theme.input}`}
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1 opacity-60">
+                        <label className={`block text-[10px] font-bold uppercase tracking-widest mb-1 ${theme.inputLabel}`}>
                             Verify New Protocol
                         </label>
                         <input
                             type="password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="w-full bg-bg-soft border border-black/10 p-2 font-mono text-sm focus:border-cobalt-primary outline-none"
+                            className={`w-full p-3 font-mono text-sm border outline-none transition-colors ${theme.input}`}
                             required
                         />
                     </div>
@@ -123,7 +144,7 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-black text-white py-3 font-bold tracking-widest uppercase hover:bg-cobalt-deep transition-colors text-xs disabled:opacity-50 mt-4"
+                        className={`w-full py-4 font-bold tracking-widest uppercase transition-colors text-xs disabled:opacity-50 mt-6 ${theme.button}`}
                     >
                         {loading ? 'UPDATING...' : 'EXECUTE UPDATE'}
                     </button>
