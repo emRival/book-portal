@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { exec } = require('child_process'); // For Ghostscript
 
 const prisma = new PrismaClient();
 
@@ -144,6 +145,42 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
             }
         }
 
+        // Compress PDF using Ghostscript
+        let finalPdfPath = pdfPath;
+        try {
+            const originalPdfPath = path.join(process.cwd(), 'uploads', pdfPath);
+            const compressedPdfFilename = `compressed-${Date.now()}.pdf`;
+            const compressedPdfPath = path.join(process.cwd(), 'uploads', compressedPdfFilename);
+
+            console.log(`Compressing PDF: ${originalPdfPath} -> ${compressedPdfPath}`);
+
+            await new Promise((resolve, reject) => {
+                const command = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${compressedPdfPath}" "${originalPdfPath}"`;
+                exec(command, (error, stdout, stderr) => {
+                    if (error) {
+                        console.error(`Ghostscript error: ${error.message}`);
+                        reject(error);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+
+            // If compression successful, delete original and use compressed
+            fs.unlinkSync(originalPdfPath);
+            finalPdfPath = compressedPdfFilename;
+            console.log("PDF Compression successful");
+
+        } catch (error) {
+            console.error("PDF Compression failed, using original file:", error);
+            // Fallback to original
+        }
+
+        // Calculate file size
+        const finalPathFull = path.join(process.cwd(), 'uploads', finalPdfPath);
+        const stats = fs.statSync(finalPathFull);
+        const fileSize = stats.size;
+
         // Ensure unique slug
         let baseSlug = createSlug(title);
         let slug = baseSlug;
@@ -159,8 +196,10 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                 author: req.user.username,
                 category: category || "General",
                 slug,
-                pdfPath,
+                slug,
+                pdfPath: finalPdfPath,
                 coverImage: coverPath,
+                fileSize: fileSize,
                 userId: req.user.userId
             }
         });
@@ -205,6 +244,65 @@ router.get('/slug/:slug', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to fetch book by slug' });
+    }
+});
+
+// GET share link (Dynamic Meta Tags)
+router.get('/share/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const book = await prisma.book.findUnique({
+            where: { slug },
+            select: { title: true, coverImage: true, category: true, author: true }
+        });
+
+        if (!book) return res.status(404).send('Book not found');
+
+        // Construct absolute URLs
+        // Assume domain is passed via env or hardcoded for now based on request context
+        const domain = process.env.DOMAIN || 'https://book.idnbogor.id';
+        const coverUrl = book.coverImage ? `${domain}/uploads/${book.coverImage}` : `${domain}/default-cover.png`;
+        const bookUrl = `${domain}/book/${slug}`; // Frontend viewer URL
+
+        const html = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${book.title} - IDN Book</title>
+                
+                <!-- Open Graph / Facebook -->
+                <meta property="og:type" content="book" />
+                <meta property="og:url" content="${bookUrl}" />
+                <meta property="og:title" content="${book.title}" />
+                <meta property="og:description" content="Read '${book.title}' by ${book.author} on IDN Book. Category: ${book.category}" />
+                <meta property="og:image" content="${coverUrl}" />
+                <meta property="og:image:width" content="800" />
+
+                <!-- Twitter -->
+                <meta property="twitter:card" content="summary_large_image" />
+                <meta property="twitter:url" content="${bookUrl}" />
+                <meta property="twitter:title" content="${book.title}" />
+                <meta property="twitter:description" content="Read '${book.title}' by ${book.author} on IDN Book." />
+                <meta property="twitter:image" content="${coverUrl}" />
+
+                <script>
+                    // Redirect to actual book reader
+                    window.location.href = "${bookUrl}";
+                </script>
+            </head>
+            <body>
+                <p>Redirecting to <a href="${bookUrl}">${book.title}</a>...</p>
+            </body>
+            </html>
+        `;
+
+        res.send(html);
+
+    } catch (error) {
+        console.error("Share link error:", error);
+        res.status(500).send('Error generating share link');
     }
 });
 

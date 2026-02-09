@@ -29,6 +29,7 @@ model Book {
   slug        String   @unique
   coverImage  String?  // Path to cover image
   pdfPath     String   // Path to PDF file
+  fileSize    Int      @default(0) // Size in bytes
   views       Int      @default(0)
   userId      Int
   user        User     @relation(fields: [userId], references: [id])

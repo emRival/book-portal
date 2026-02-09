@@ -2,8 +2,8 @@ FROM node:18-slim
 
 WORKDIR /app
 
-# Install OpenSSL for Prisma
-RUN apt-get update -y && apt-get install -y openssl
+# Install OpenSSL for Prisma and Ghostscript for PDF compression
+RUN apt-get update -y && apt-get install -y openssl ghostscript
 
 COPY package*.json ./
 RUN npm install

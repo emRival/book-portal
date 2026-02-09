@@ -129,6 +129,14 @@ const Dashboard = () => {
         }
     };
 
+    const formatFileSize = (bytes) => {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
     const logout = () => {
         localStorage.removeItem('token');
         navigate('/login');
@@ -292,6 +300,14 @@ const Dashboard = () => {
                                         <span className="text-[10px] font-bold text-cobalt-primary flex items-center gap-1">
                                             <Share2 size={10} /> {book.views} READS
                                         </span>
+                                        {book.fileSize > 0 && (
+                                            <>
+                                                <span className="w-1 h-1 bg-black/10 rounded-full"></span>
+                                                <span className="text-[10px] font-mono text-gray-500">
+                                                    {formatFileSize(book.fileSize)}
+                                                </span>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>
