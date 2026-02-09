@@ -65,6 +65,7 @@ router.get('/categories/list', async (req, res) => {
 router.get('/public', async (req, res) => {
     try {
         const books = await prisma.book.findMany({
+            where: { isProcessing: false },
             orderBy: { createdAt: 'desc' },
             include: { user: { select: { username: true } } }
         });
@@ -170,7 +171,8 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                 pdfPath: pdfPath, // Start with original
                 coverImage: coverPath,
                 fileSize: initialFileSize,
-                userId: req.user.userId
+                userId: req.user.userId,
+                isProcessing: true // Mark as processing initially
             }
         });
 
@@ -182,6 +184,11 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
             // Optimization: Skip compression if file < 20MB
             if (initialFileSize < 20 * 1024 * 1024) {
                 console.log(`[Background] Skipping compression for book ${book.id} (${slug}) - Size ${initialFileSize} < 20MB`);
+                // Mark as ready since we skipped compression
+                await prisma.book.update({
+                    where: { id: book.id },
+                    data: { isProcessing: false }
+                });
                 return;
             }
 
@@ -213,7 +220,8 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                     where: { id: book.id },
                     data: {
                         pdfPath: compressedPdfFilename,
-                        fileSize: newFileSize
+                        fileSize: newFileSize,
+                        isProcessing: false // Mark as ready
                     }
                 });
 
@@ -223,7 +231,15 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
 
             } catch (error) {
                 console.error(`[Background] Compression failed for book ${book.id}:`, error);
-                // Keep the original file linkage since we already saved it
+
+                // If compression failed, we might want to keep the original but mark as ready? 
+                // Or keep as processing/failed? 
+                // Let's mark as ready but keep original for now to avoid data loss, 
+                // or we could retry. For simplicity, mark ready with original.
+                await prisma.book.update({
+                    where: { id: book.id },
+                    data: { isProcessing: false }
+                });
             }
         })();
 
@@ -286,7 +302,7 @@ router.get('/share/:slug', async (req, res) => {
         // Assume domain is passed via env or hardcoded for now based on request context
         const domain = process.env.DOMAIN || 'https://book.idnbogor.id';
         const coverUrl = book.coverImage ? `${domain}/uploads/${book.coverImage}` : `${domain}/default-cover.png`;
-        const bookUrl = `${domain}/book/${slug}`; // Frontend Detail URL (Verified)
+        const bookUrl = `${domain}/read/${slug}`; // Frontend viewer URL
         const description = book.description || `Read '${book.title}' by ${book.author} on IDN Book. Category: ${book.category}`;
 
         const html = `

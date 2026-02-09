@@ -321,6 +321,15 @@ const Dashboard = () => {
                                                 </span>
                                             </>
                                         )}
+                                        <span className="w-1 h-1 bg-black/10 rounded-full"></span>
+                                        <span className="text-[10px] font-mono font-bold uppercase text-black/40">
+                                            {new Date(book.createdAt).toLocaleDateString()}
+                                        </span>
+                                        {book.isProcessing && (
+                                            <span className="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded ml-2 animate-pulse">
+                                                PROCESSING
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>

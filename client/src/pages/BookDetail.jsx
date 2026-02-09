@@ -124,14 +124,22 @@ const BookDetail = () => {
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                            <button
-                                onClick={() => navigate(`/read/${book.slug}`)}
-                                className="flex-1 bg-black text-white px-8 py-4 font-bold uppercase tracking-[0.2em] hover:bg-cobalt-primary transition-all flex items-center justify-center gap-3 group relative overflow-hidden"
-                            >
-                                <span className="relative z-10 flex items-center gap-3">
-                                    <BookOpen size={20} /> INITIALIZE_READ
-                                </span>
-                            </button>
+                            {book.isProcessing ? (
+                                <button disabled className="flex-1 bg-gray-300 text-gray-500 px-8 py-4 font-bold uppercase tracking-[0.2em] cursor-not-allowed flex items-center justify-center gap-3">
+                                    <span className="relative z-10 flex items-center gap-3">
+                                        <Clock size={20} className="animate-spin" /> PROCESSING_NODE...
+                                    </span>
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => navigate(`/read/${book.slug}`)}
+                                    className="flex-1 bg-black text-white px-8 py-4 font-bold uppercase tracking-[0.2em] hover:bg-cobalt-primary transition-all flex items-center justify-center gap-3 group relative overflow-hidden"
+                                >
+                                    <span className="relative z-10 flex items-center gap-3">
+                                        <BookOpen size={20} /> READ
+                                    </span>
+                                </button>
+                            )}
 
                             <button
                                 onClick={() => {
@@ -141,7 +149,7 @@ const BookDetail = () => {
                                 }}
                                 className="px-8 py-4 border border-black/10 hover:bg-white hover:border-black font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                             >
-                                <Share2 size={20} /> SHARE_NODE
+                                <Share2 size={20} /> SHARE
                             </button>
                         </div>
 

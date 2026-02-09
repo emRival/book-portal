@@ -26,6 +26,7 @@ model Book {
   title       String
   author      String
   description String?  // Optional description
+  isProcessing Boolean @default(false) // Track compression status
   category    String   @default("General")
   slug        String   @unique
   coverImage  String?  // Path to cover image
