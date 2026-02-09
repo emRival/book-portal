@@ -22,8 +22,19 @@ const mongoSanitize = require('express-mongo-sanitize');
 
 // Middleware
 app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" } // Allow images to be loaded safely
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://static.cloudflareinsights.com"], // Allow inline scripts for redirect & Cloudflare
+            styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for redirect
+            imgSrc: ["'self'", "data:", "https:", "blob:"], // Allow images from any HTTPS source (for covers)
+            connectSrc: ["'self'", "https://static.cloudflareinsights.com"],
+            upgradeInsecureRequests: null, // Optional: disable if causing issues in dev/docker
+        },
+    },
+    crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
+
 app.use(xss());
 app.use(hpp()); // Prevent HTTP Parameter Pollution
 app.use(mongoSanitize()); // Prevent NoSQL Injection (even if using SQL, good practice for object injection)
