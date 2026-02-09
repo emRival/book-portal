@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.set('trust proxy', 1); // Trust Nginx Proxy for correct IP rate limiting
+app.set('trust proxy', 'loopback, linklocal, uniquelocal'); // Trust Docker internal networks
 
 const helmet = require('helmet');
 const xss = require('xss-clean');
