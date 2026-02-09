@@ -41,5 +41,12 @@ Run the start script to launch both server and client:
    ```
    Client runs on `http://localhost:5173`.
 
+## Security Updates (Important)
+We have switched to Nginx for serving the frontend to improve security. If you are using Docker, you **MUST** rebuild your containers:
+
+```bash
+docker-compose up --build -d --force-recreate
+```
+
 ## default Credentials
 - **Register**: Go to `/login` and click "Initialize New Identity" to create your first admin account.
