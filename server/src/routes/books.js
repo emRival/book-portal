@@ -202,6 +202,7 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                     const command = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${compressedPdfPath}" "${originalPdfAbsolutePath}"`;
                     exec(command, (error, stdout, stderr) => {
                         if (error) {
+                            console.error("[Background] Ghostscript error:", stderr);
                             reject(error);
                         } else {
                             resolve();
@@ -212,6 +213,11 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                 // Check new size
                 const newStats = fs.statSync(compressedPdfPath);
                 const newFileSize = newStats.size;
+
+                // Validation: If compressed file is too small (< 5KB), assume failure
+                if (newFileSize < 5 * 1024) {
+                    throw new Error(`Compressed file too small (${newFileSize} bytes), potential corruption.`);
+                }
 
                 console.log(`[Background] Compression success: ${initialFileSize} -> ${newFileSize} bytes`);
 
@@ -232,10 +238,8 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
             } catch (error) {
                 console.error(`[Background] Compression failed for book ${book.id}:`, error);
 
-                // If compression failed, we might want to keep the original but mark as ready? 
-                // Or keep as processing/failed? 
-                // Let's mark as ready but keep original for now to avoid data loss, 
-                // or we could retry. For simplicity, mark ready with original.
+                // Fallback: If compression fails, use ORIGINAL file and mark ready
+                // effectively skipping compression for this error case
                 await prisma.book.update({
                     where: { id: book.id },
                     data: { isProcessing: false }
