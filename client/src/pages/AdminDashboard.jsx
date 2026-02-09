@@ -176,6 +176,7 @@ const AdminDashboard = () => {
                         >
                             User_Base
                         </button>
+                        <span className="text-xs font-bold uppercase tracking-widest opacity-30">{localStorage.getItem('username')}</span>
                         <div className="h-6 w-px bg-gray-700"></div>
                         <Link to="/" className="text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100 hover:text-red-500 flex items-center gap-2">
                             <Library size={14} /> Grid

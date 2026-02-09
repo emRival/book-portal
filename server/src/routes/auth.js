@@ -2,10 +2,25 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 const { PrismaClient } = require('@prisma/client');
 const { SECRET_KEY, authenticateToken } = require('../middleware/authMiddleware');
 
 const prisma = new PrismaClient();
+
+const verifyTurnstile = async (token) => {
+    const secretKey = process.env.CLOUDFLARE_SECRET_KEY || '1x0000000000000000000000000000000AA'; // Test key
+    try {
+        const response = await axios.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            secret: secretKey,
+            response: token
+        });
+        return response.data.success;
+    } catch (error) {
+        console.error('Turnstile verification error:', error);
+        return false;
+    }
+};
 
 // Register (Can be used to seed the first user)
 router.post('/register', async (req, res) => {
@@ -16,7 +31,13 @@ router.post('/register', async (req, res) => {
             return res.status(403).json({ error: 'Registration is currently closed by the administrator.' });
         }
 
-        const { username, password } = req.body;
+        const { username, password, cfToken } = req.body;
+
+        // Verify CAPTCHA
+        const isHuman = await verifyTurnstile(cfToken);
+        if (!isHuman) {
+            return res.status(400).json({ error: 'CAPTCHA verification failed' });
+        }
 
         // Validation
         if (username.toLowerCase() === 'admin') {
@@ -85,7 +106,14 @@ router.put('/settings', authenticateToken, async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, cfToken } = req.body;
+
+        // Verify CAPTCHA
+        const isHuman = await verifyTurnstile(cfToken);
+        if (!isHuman) {
+            return res.status(400).json({ error: 'CAPTCHA verification failed' });
+        }
+
         const user = await prisma.user.findUnique({ where: { username } });
 
         if (!user) {

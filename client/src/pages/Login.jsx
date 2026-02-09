@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Turnstile from 'react-turnstile';
 import { API_BASE_URL } from '../config';
 
 const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [cfToken, setCfToken] = useState('');
     const [error, setError] = useState('');
     const [registrationEnabled, setRegistrationEnabled] = useState(true);
     const navigate = useNavigate();
@@ -28,7 +30,11 @@ const Login = () => {
         const endpoint = isRegistering ? 'register' : 'login';
 
         try {
-            const res = await axios.post(`${API_BASE_URL}/auth/${endpoint}`, { username, password });
+            if (!cfToken) {
+                setError('Please complete the CAPTCHA check.');
+                return;
+            }
+            const res = await axios.post(`${API_BASE_URL}/auth/${endpoint}`, { username, password, cfToken });
 
             if (isRegistering) {
                 // If registered successfully, just login immediately or switch to login
@@ -103,6 +109,14 @@ const Login = () => {
                     >
                         {isRegistering ? 'Confirm Registration' : 'Authenticate'}
                     </button>
+
+                    <div className="flex justify-center mt-4">
+                        <Turnstile
+                            sitekey={import.meta.env.VITE_CLOUDFLARE_SITE_KEY || "0x4AAAAAAAAmHwXnF2tXn-vD"} // Use test key if not set
+                            onVerify={(token) => setCfToken(token)}
+                            theme="light"
+                        />
+                    </div>
                 </form>
 
                 <div className="mt-8 pt-6 border-t border-black/5">

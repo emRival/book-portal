@@ -152,7 +152,9 @@ const Dashboard = () => {
                     <h1 className="text-3xl font-extrabold tracking-tighter">DASHBOARD</h1>
                     <span className="block text-xs font-bold uppercase tracking-widest opacity-40">Content Management</span>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex items-center gap-4">
+                    <span className="text-xs font-bold uppercase tracking-widest opacity-40 hidden md:inline-block">{localStorage.getItem('username')}</span>
+                    <div className="h-8 w-px bg-black/5 hidden md:block"></div>
                     <Link to="/" className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest hover:text-cobalt-primary">
                         <Library size={16} /> Public Grid
                     </Link>

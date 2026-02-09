@@ -134,10 +134,13 @@ const Home = () => {
                 </div>
                 <div className="flex gap-12 text-xs font-bold uppercase tracking-widest items-center">
                     {localStorage.getItem('token') ? (
-                        <Link to={localStorage.getItem('role') === 'ADMIN' ? '/admin-dashboard' : '/dashboard'}
-                            className="bg-black text-white px-8 py-3 hover:bg-gray-800 transition-all font-bold">
-                            DASHBOARD
-                        </Link>
+                        <div className="flex items-center gap-4">
+                            <span className="hidden md:inline-block opacity-60">HELLO, {localStorage.getItem('username')}</span>
+                            <Link to={localStorage.getItem('role') === 'ADMIN' ? '/admin-dashboard' : '/dashboard'}
+                                className="bg-black text-white px-8 py-3 hover:bg-gray-800 transition-all font-bold">
+                                DASHBOARD
+                            </Link>
+                        </div>
                     ) : (
                         <Link to="/login" className="bg-black text-white px-8 py-3 hover:bg-gray-800 transition-all font-bold">
                             LOGIN
