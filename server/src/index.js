@@ -15,6 +15,8 @@ app.set('trust proxy', 1); // Trust Nginx Proxy for correct IP rate limiting
 const helmet = require('helmet');
 const xss = require('xss-clean');
 const rateLimit = require('express-rate-limit');
+const hpp = require('hpp');
+const mongoSanitize = require('express-mongo-sanitize');
 
 // ... (existing imports)
 
@@ -23,17 +25,39 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" } // Allow images to be loaded safely
 }));
 app.use(xss());
+app.use(hpp()); // Prevent HTTP Parameter Pollution
+app.use(mongoSanitize()); // Prevent NoSQL Injection (even if using SQL, good practice for object injection)
 app.use(cors());
 app.use(express.json({ limit: '10kb' })); // Body limit
 app.use(morgan('dev'));
 
-// Rate Limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.'
+// Block sensitive files
+app.use((req, res, next) => {
+    const sensitiveFiles = ['.env', '.git', '.gitignore', 'package.json', 'package-lock.json', 'yarn.lock', 'docker-compose.yml', 'Dockerfile'];
+    const forbiddenPaths = ['/uploads/..', '/etc/passwd']; // Basic path traversal checks
+
+    // Check if path starts with dot (hidden files) or contains sensitive filenames
+    const path = req.path.toLowerCase();
+    if (path.startsWith('/.') || sensitiveFiles.some(file => path.includes(`/${file}`)) || forbiddenPaths.some(p => path.includes(p))) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+    next();
 });
-app.use('/auth', limiter); // Apply to auth routes
+
+// Rate Limiting
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20, // Strict limit for auth routes
+    message: 'Too many login attempts, please try again later.'
+});
+app.use('/auth', authLimiter); // Apply to auth routes
+
+const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 300, // General API limit
+    message: 'Too many requests, please try again later.'
+});
+app.use('/books', globalLimiter);
 
 // Static files (for uploaded PDFs and covers)
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
