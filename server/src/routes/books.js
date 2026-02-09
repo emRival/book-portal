@@ -408,38 +408,100 @@ router.get('/share/:slug', async (req, res) => {
                         justify-content: center;
                         height: 100vh;
                         margin: 0;
-                        background-color: #f8f9fa;
-                        color: #333;
+                        background-color: #f0f0f0;
+                        background-image: 
+                            linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
+                        background-size: 40px 40px;
+                        color: #1a1a1a;
                     }
-                    .loader {
-                        width: 48px;
-                        height: 48px;
-                        border: 5px solid #000;
-                        border-bottom-color: transparent;
-                        border-radius: 50%;
-                        display: inline-block;
-                        box-sizing: border-box;
-                        animation: rotation 1s linear infinite;
-                        margin-bottom: 20px;
+                    .container {
+                        background: rgba(255, 255, 255, 0.8);
+                        backdrop-filter: blur(12px);
+                        padding: 40px;
+                        border: 1px solid rgba(0,0,0,0.1);
+                        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1);
+                        text-align: center;
+                        max-width: 400px;
+                        width: 90%;
+                        position: relative;
                     }
-                    @keyframes rotation {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
+                    .container::before {
+                        content: '';
+                        position: absolute;
+                        top: 4px; left: 4px; right: -4px; bottom: -4px;
+                        border: 1px solid rgba(0,0,0,0.1);
+                        z-index: -1;
                     }
-                    p { font-size: 1.2rem; margin-bottom: 2rem; }
-                    .btn {
-                        padding: 10px 20px;
+                    .logo {
+                        width: 64px;
+                        height: 64px;
+                        margin-bottom: 24px;
                         background-color: #000;
+                        mask: url(${domain}/logo.png) no-repeat center / contain;
+                        -webkit-mask: url(${domain}/logo.png) no-repeat center / contain;
+                    }
+                    h1 {
+                        font-size: 1.5rem;
+                        font-weight: 800;
+                        letter-spacing: -0.05em;
+                        margin: 0 0 8px 0;
+                        text-transform: uppercase;
+                    }
+                    p {
+                        font-family: 'JetBrains Mono', monospace;
+                        font-size: 0.75rem;
+                        color: rgba(0,0,0,0.5);
+                        margin: 0 0 32px 0;
+                        text-transform: uppercase;
+                        letter-spacing: 0.1em;
+                    }
+                    .loader-bar {
+                        width: 100%;
+                        height: 4px;
+                        background: rgba(0,0,0,0.1);
+                        position: relative;
+                        overflow: hidden;
+                        margin-bottom: 24px;
+                    }
+                    .loader-bar::after {
+                        content: '';
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        height: 100%;
+                        width: 0%;
+                        background: #000;
+                        animation: load 3s linear forwards;
+                    }
+                    @keyframes load {
+                        0% { width: 0%; }
+                        100% { width: 100%; }
+                    }
+                    .btn {
+                        display: inline-block;
+                        padding: 12px 24px;
+                        background: #000;
                         color: #fff;
                         text-decoration: none;
-                        border-radius: 4px;
-                        font-weight: bold;
+                        font-size: 0.8rem;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.1em;
+                        transition: transform 0.2s;
+                    }
+                    .btn:hover {
+                        transform: translateY(-2px);
+                    }
+                    .meta-info {
+                        margin-top: 24px;
+                        font-size: 0.7rem;
+                        opacity: 0.4;
                     }
                 </style>
                 <script>
                     let timeLeft = 3;
                     function updateTimer() {
-                        document.getElementById('timer').innerText = timeLeft;
                         if (timeLeft <= 0) {
                             window.location.href = "${bookUrl}";
                         } else {
@@ -451,9 +513,20 @@ router.get('/share/:slug', async (req, res) => {
                 </script>
             </head>
             <body>
-                <span class="loader"></span>
-                <p>Redirecting to <strong>${book.title}</strong> in <span id="timer">3</span> seconds...</p>
-                <a href="${bookUrl}" class="btn">Click here if not redirected</a>
+                <div class="container">
+                    <img src="${domain}/logo.png" style="width: 64px; height: 64px; margin-bottom: 16px;" alt="Logo">
+                    <h1>${book.title}</h1>
+                    <p>Redirecting to Reader Node...</p>
+                    
+                    <div class="loader-bar"></div>
+                    
+                    <a href="${bookUrl}" class="btn">Access Now</a>
+                    
+                    <div class="meta-info">
+                        IDN BOOK PORTAL v24.2.0<br>
+                        SECURE_CONNECTION
+                    </div>
+                </div>
             </body>
             </html>
         `;
