@@ -103,20 +103,20 @@ const Login = () => {
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        className="w-full bg-black text-white py-4 font-bold tracking-widest uppercase hover:bg-cobalt-deep transition-colors text-xs"
-                    >
-                        {isRegistering ? 'Confirm Registration' : 'Authenticate'}
-                    </button>
-
-                    <div className="flex justify-center mt-4">
+                    <div className="flex justify-center mb-6">
                         <Turnstile
                             sitekey={import.meta.env.VITE_CLOUDFLARE_SITE_KEY || "0x4AAAAAAAAmHwXnF2tXn-vD"} // Use test key if not set
                             onVerify={(token) => setCfToken(token)}
                             theme="light"
                         />
                     </div>
+
+                    <button
+                        type="submit"
+                        className="w-full bg-black text-white py-4 font-bold tracking-widest uppercase hover:bg-cobalt-deep transition-colors text-xs"
+                    >
+                        {isRegistering ? 'Confirm Registration' : 'Authenticate'}
+                    </button>
                 </form>
 
                 <div className="mt-8 pt-6 border-t border-black/5">
