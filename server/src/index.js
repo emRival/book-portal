@@ -82,6 +82,24 @@ app.get('/', (req, res) => {
     res.send('IDN Book API is running');
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+
+    // Mongoose/Prisma validation errors might look different, but for now generic catch-all
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    // Production: Hide details
+    if (process.env.NODE_ENV === 'production') {
+        res.status(500).json({ error: 'Internal Server Error' });
+    } else {
+        // Development: Show details
+        res.status(500).json({ error: err.message, stack: err.stack });
+    }
+});
+
 // Start Server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);

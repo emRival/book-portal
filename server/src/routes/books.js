@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const validate = require('../middleware/validate');
+const { uploadBookValidation, bookIdValidation } = require('../validations/book.validation');
 const { exec } = require('child_process'); // For Ghostscript
 const util = require('util');
 const execPromise = util.promisify(exec);
@@ -116,7 +118,7 @@ const createSlug = (title) => {
 const sharp = require('sharp');
 
 // POST upload book (Protected)
-router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 }, { name: 'cover', maxCount: 1 }]), async (req, res) => {
+router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 }, { name: 'cover', maxCount: 1 }]), uploadBookValidation, validate, async (req, res) => {
     try {
         const { title, category, description } = req.body;
 
@@ -540,7 +542,7 @@ router.get('/share/:slug', async (req, res) => {
 });
 
 // DELETE book (Protected - Owner or Admin)
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, bookIdValidation, validate, async (req, res) => {
     try {
         const { id } = req.params;
         const book = await prisma.book.findUnique({ where: { id: parseInt(id) } });

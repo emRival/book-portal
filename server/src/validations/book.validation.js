@@ -1,0 +1,28 @@
+const { body, param } = require('express-validator');
+
+exports.uploadBookValidation = [
+    body('title')
+        .trim()
+        .notEmpty().withMessage('Title is required')
+        .isLength({ max: 200 }).withMessage('Title too long')
+        .escape(), // Prevent XSS
+
+    body('description')
+        .optional()
+        .trim()
+        .isLength({ max: 500 }).withMessage('Description too long')
+        .escape(),
+
+    body('category')
+        .trim()
+        .notEmpty().withMessage('Category is required')
+        .isLength({ max: 50 }).withMessage('Category too long')
+        .matches(/^[a-zA-Z0-9\s\-_,]+$/).withMessage('Invalid characters in category')
+        .escape()
+];
+
+exports.bookIdValidation = [
+    param('id')
+        .isInt().withMessage('Invalid Book ID')
+        .toInt()
+];

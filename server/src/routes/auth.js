@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const { PrismaClient } = require('@prisma/client');
 const { SECRET_KEY, authenticateToken } = require('../middleware/authMiddleware');
+const validate = require('../middleware/validate');
+const { registerValidation, loginValidation, changePasswordValidation } = require('../validations/auth.validation');
 
 const prisma = new PrismaClient();
 
@@ -23,7 +25,7 @@ const verifyTurnstile = async (token) => {
 };
 
 // Register (Can be used to seed the first user)
-router.post('/register', async (req, res) => {
+router.post('/register', registerValidation, validate, async (req, res) => {
     try {
         // Check if registration is enabled
         const settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
@@ -39,12 +41,9 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'CAPTCHA verification failed' });
         }
 
-        // Validation
+        // Validation handled by middleware
         if (username.toLowerCase() === 'admin') {
             return res.status(400).json({ error: 'Username "admin" is not allowed' });
-        }
-        if (password.length < 6) {
-            return res.status(400).json({ error: 'Password must be at least 6 characters' });
         }
 
         // Check if user exists
@@ -104,7 +103,7 @@ router.put('/settings', authenticateToken, async (req, res) => {
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', loginValidation, validate, async (req, res) => {
     try {
         const { username, password, cfToken } = req.body;
 
@@ -136,15 +135,13 @@ router.post('/login', async (req, res) => {
 });
 
 // Change Password (User & Admin)
-router.post('/change-password', authenticateToken, async (req, res) => {
+router.post('/change-password', authenticateToken, changePasswordValidation, validate, async (req, res) => {
     try {
         const { oldPassword, newPassword } = req.body;
         const userId = req.user.userId;
         const userRole = req.user.role;
 
-        if (!newPassword || newPassword.length < 6) {
-            return res.status(400).json({ error: 'New password must be at least 6 characters' });
-        }
+        // Validation handled by middleware
 
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) return res.status(404).json({ error: 'User not found' });
