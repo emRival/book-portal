@@ -128,6 +128,15 @@ router.post('/login', loginValidation, validate, async (req, res) => {
             expiresIn: '24h',
         });
 
+        // Update Last Login & IP
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                lastLogin: new Date(),
+                ip: req.ip || req.connection.remoteAddress
+            }
+        });
+
         res.json({ token, username: user.username, role: user.role });
     } catch (error) {
         res.status(500).json({ error: 'Login failed', details: error.message });

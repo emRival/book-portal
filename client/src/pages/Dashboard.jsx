@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import { Upload, Trash2, Library, LogOut, Book as BookIcon, Share2, BarChart3 } from 'lucide-react';
-import { useRef } from 'react';
+import { Upload, Trash2, Library, LogOut, Book as BookIcon, Share2, BarChart3, Menu, X } from 'lucide-react';
 import { pdfjs } from 'react-pdf';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { API_BASE_URL } from '../config';
@@ -27,6 +26,7 @@ const Dashboard = () => {
     const coverInputRef = useRef(null);
     const navigate = useNavigate();
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Modal State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -172,15 +172,17 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="min-h-screen blueprint-bg p-6 md:p-12">
-            <header className="flex justify-between items-center mb-12 max-w-6xl mx-auto">
+        <div className="min-h-screen blueprint-bg p-6 md:p-12 relative">
+            <header className="flex justify-between items-center mb-12 max-w-6xl mx-auto relative z-50">
                 <div className="border-l-4 border-black pl-6">
                     <h1 className="text-3xl font-extrabold tracking-tighter">DASHBOARD</h1>
                     <span className="block text-xs font-bold uppercase tracking-widest opacity-40">Content Management</span>
                 </div>
-                <div className="flex items-center gap-4">
-                    <span className="text-xs font-bold uppercase tracking-widest opacity-40 hidden md:inline-block">{localStorage.getItem('username')}</span>
-                    <div className="h-8 w-px bg-black/5 hidden md:block"></div>
+
+                {/* Desktop Nav */}
+                <div className="hidden md:flex items-center gap-4">
+                    <span className="text-xs font-bold uppercase tracking-widest opacity-40">{localStorage.getItem('username')}</span>
+                    <div className="h-8 w-px bg-black/5"></div>
                     <Link to="/" className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest hover:text-cobalt-primary">
                         <Library size={16} /> Public Grid
                     </Link>
@@ -191,7 +193,46 @@ const Dashboard = () => {
                         <LogOut size={16} /> Logout
                     </button>
                 </div>
+
+                {/* Mobile Menu Button */}
+                <button
+                    className="md:hidden p-2 text-black"
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                >
+                    {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                </button>
             </header>
+
+            {/* Mobile Menu Overlay */}
+            {isMobileMenuOpen && (
+                <div className="fixed inset-0 z-40 bg-white/95 backdrop-blur-lg flex flex-col items-center justify-center gap-8 md:hidden animation-fade-in">
+                    <div className="text-xs font-bold uppercase tracking-widest opacity-40 mb-4">
+                        Logged in as {localStorage.getItem('username')}
+                    </div>
+                    <Link
+                        to="/"
+                        className="text-xl font-black uppercase tracking-tighter hover:text-cobalt-primary flex items-center gap-3"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                        <Library size={24} /> Public Grid
+                    </Link>
+                    <button
+                        onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            setIsChangePasswordOpen(true);
+                        }}
+                        className="text-xl font-black uppercase tracking-tighter hover:text-cobalt-primary flex items-center gap-3"
+                    >
+                        <span className="w-3 h-3 bg-cobalt-primary rounded-full"></span> Security Settings
+                    </button>
+                    <button
+                        onClick={logout}
+                        className="text-xl font-black uppercase tracking-tighter text-red-600 hover:text-red-700 flex items-center gap-3"
+                    >
+                        <LogOut size={24} /> Logout System
+                    </button>
+                </div>
+            )}
 
             <ChangePasswordModal
                 isOpen={isChangePasswordOpen}
