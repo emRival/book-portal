@@ -132,8 +132,8 @@ router.post('/login', loginValidation, validate, async (req, res) => {
         await prisma.user.update({
             where: { id: user.id },
             data: {
-                lastLogin: new Date(),
-                ip: req.ip || req.connection.remoteAddress
+                lastLoginAt: new Date(),
+                lastLoginIp: req.ip || req.connection.remoteAddress
             }
         });
 
