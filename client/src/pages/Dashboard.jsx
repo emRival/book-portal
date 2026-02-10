@@ -60,6 +60,20 @@ const Dashboard = () => {
         e.preventDefault();
         if (!file) return;
 
+        // Validation
+        if (file.size > 100 * 1024 * 1024) {
+            alert('File too large (Max 100MB)');
+            return;
+        }
+        if (title.length > 200) {
+            alert('Title is too long (Max 200 chars)');
+            return;
+        }
+        if (!/^[a-zA-Z0-9\s\-_,]+$/.test(category)) {
+            alert('Category contains invalid characters');
+            return;
+        }
+
         setLoading(true);
         const formData = new FormData();
         formData.append('title', title);
@@ -120,7 +134,7 @@ const Dashboard = () => {
             if (fileInputRef.current) fileInputRef.current.value = '';
             if (coverInputRef.current) coverInputRef.current.value = '';
         } catch (error) {
-            alert('Upload failed: ' + (error.response?.data?.error || error.message));
+            alert('Upload failed: ' + (error.response?.data?.details?.[0]?.message || error.response?.data?.error || error.message));
         } finally {
             setLoading(false);
         }

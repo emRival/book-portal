@@ -31,6 +31,11 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
             return;
         }
 
+        if (newPassword === oldPassword) {
+            setError("New password cannot be the same as old password");
+            return;
+        }
+
         setLoading(true);
         try {
             const token = localStorage.getItem('token');

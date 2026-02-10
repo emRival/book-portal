@@ -24,9 +24,30 @@ const Login = () => {
             .catch(() => setRegistrationEnabled(true));
     }, []);
 
+    const validateInput = () => {
+        if (!username.trim() || !password) {
+            setError('Username and password are required');
+            return false;
+        }
+        if (isRegistering) {
+            if (password.length < 6) {
+                setError('Password must be at least 6 characters');
+                return false;
+            }
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                setError('Username can only contain letters, numbers, and underscores');
+                return false;
+            }
+        }
+        return true;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (!validateInput()) return;
+
         const endpoint = isRegistering ? 'register' : 'login';
 
         try {
@@ -54,7 +75,9 @@ const Login = () => {
                 else navigate('/dashboard');
             }
         } catch (err) {
-            setError(err.response?.data?.error || 'Authentication failed');
+            // Display backend validation errors if available
+            const backendError = err.response?.data?.details?.[0]?.message || err.response?.data?.error || 'Authentication failed';
+            setError(backendError);
         }
     };
 
