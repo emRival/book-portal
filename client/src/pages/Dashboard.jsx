@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import { Upload, Trash2, Library, LogOut, Book as BookIcon, Share2, BarChart3, Menu, X } from 'lucide-react';
+import { Upload, Trash2, Library, LogOut, Book as BookIcon, Share2, BarChart3, Menu, X, Search } from 'lucide-react';
 import { pdfjs } from 'react-pdf';
 import { jsPDF } from "jspdf";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -30,6 +30,23 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // Pagination & Search State
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 12;
+
+    const filteredBooks = books.filter(book =>
+        book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredBooks.length / ITEMS_PER_PAGE);
+    const paginatedBooks = filteredBooks.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     // Modal State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -460,77 +477,126 @@ const Dashboard = () => {
                 </div>
 
                 {/* List Section */}
-                <div className="lg:col-span-2 space-y-4">
-                    {books.map(book => (
-                        <div key={book.id} className="bg-white p-6 border border-black/5 flex items-center justify-between hover:shadow-lg transition-all">
-                            <div className="flex items-center gap-6">
-                                <div className="w-12 h-16 bg-gray-100 flex items-center justify-center border border-gray-200 overflow-hidden">
-                                    {book.coverImage ? (
-                                        <img src={`${API_BASE_URL}/uploads/${book.coverImage}`} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <BookIcon size={16} className="opacity-20" />
-                                    )}
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-lg leading-tight">{book.title}</h3>
-                                    <div className="flex items-center gap-3">
-                                        <p className="text-xs font-mono text-text-muted uppercase">{book.author}</p>
-                                        <span className="w-1 h-1 bg-black/10 rounded-full"></span>
-                                        <span className="text-[10px] px-2 py-0.5 bg-gray-100 font-bold text-gray-500 uppercase tracking-tighter">
-                                            {book.category}
-                                        </span>
-                                        <span className="w-1 h-1 bg-black/10 rounded-full"></span>
-                                        <span className="text-[10px] font-bold text-cobalt-primary flex items-center gap-1">
-                                            <Share2 size={10} /> {book.views} READS
-                                        </span>
-                                        {book.fileSize > 0 && (
-                                            <>
-                                                <span className="w-1 h-1 bg-black/10 rounded-full"></span>
-                                                <span className="text-[10px] font-mono text-gray-500">
-                                                    {formatFileSize(book.fileSize)}
-                                                </span>
-                                            </>
-                                        )}
-                                        <span className="w-1 h-1 bg-black/10 rounded-full"></span>
-                                        <span className="text-[10px] font-mono font-bold uppercase text-black/40">
-                                            {new Date(book.createdAt).toLocaleDateString()}
-                                        </span>
-                                        {book.isProcessing && (
-                                            <span className="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded ml-2 animate-pulse">
-                                                PROCESSING
-                                            </span>
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Search & Filter */}
+                    <div className="bg-white p-6 border border-black/5 flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <div className="relative flex-1 w-full">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                            <input
+                                type="text"
+                                placeholder="SEARCH MANIFEST (TITLE, DESC, TAG)..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1); // Reset to page 1 on search
+                                }}
+                                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-black/10 font-mono text-sm focus:outline-none focus:border-cobalt-primary transition-colors"
+                            />
+                        </div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest opacity-40 whitespace-nowrap">
+                            SHOWING {paginatedBooks.length} OF {filteredBooks.length}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {paginatedBooks.map(book => (
+                            <div key={book.id} className="bg-white p-6 border border-black/5 flex items-center justify-between hover:shadow-lg transition-all">
+                                <div className="flex items-center gap-6">
+                                    <div className="w-12 h-16 bg-gray-100 flex items-center justify-center border border-gray-200 overflow-hidden">
+                                        {book.coverImage ? (
+                                            <img src={`${API_BASE_URL}/uploads/${book.coverImage}`} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <BookIcon size={16} className="opacity-20" />
                                         )}
                                     </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg leading-tight">{book.title}</h3>
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-xs font-mono text-text-muted uppercase">{book.author}</p>
+                                            <span className="w-1 h-1 bg-black/10 rounded-full"></span>
+                                            <span className="text-[10px] px-2 py-0.5 bg-gray-100 font-bold text-gray-500 uppercase tracking-tighter">
+                                                {book.category}
+                                            </span>
+                                            <span className="w-1 h-1 bg-black/10 rounded-full"></span>
+                                            <span className="text-[10px] font-bold text-cobalt-primary flex items-center gap-1">
+                                                <Share2 size={10} /> {book.views} READS
+                                            </span>
+                                            {book.fileSize > 0 && (
+                                                <>
+                                                    <span className="w-1 h-1 bg-black/10 rounded-full"></span>
+                                                    <span className="text-[10px] font-mono text-gray-500">
+                                                        {formatFileSize(book.fileSize)}
+                                                    </span>
+                                                </>
+                                            )}
+                                            <span className="w-1 h-1 bg-black/10 rounded-full"></span>
+                                            <span className="text-[10px] font-mono font-bold uppercase text-black/40">
+                                                {new Date(book.createdAt).toLocaleDateString()}
+                                            </span>
+                                            {book.isProcessing && (
+                                                <span className="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded ml-2 animate-pulse">
+                                                    PROCESSING
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        onClick={() => {
+                                            const shareUrl = `${window.location.origin}/share/${book.slug}`;
+                                            navigator.clipboard.writeText(shareUrl);
+                                            alert('Share link copied to clipboard: ' + shareUrl);
+                                        }}
+                                        className="text-xs font-bold px-4 py-2 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center gap-2"
+                                    >
+                                        <Share2 size={12} /> SHARE
+                                    </button>
+                                    <Link to={`/read/${book.slug}`} className="text-xs font-bold px-4 py-2 bg-gray-100 hover:bg-cobalt-primary hover:text-white transition-colors">
+                                        VIEW
+                                    </Link>
+                                    <button onClick={() => handleDelete(book.id)} className="text-red-500 hover:text-red-700 p-2">
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-4">
-                                <button
-                                    onClick={() => {
-                                        // Use new share link structure: /share/slug (proxied to backend)
-                                        // Or if using client-side routing, we need to decide.
-                                        // The request was: "ketika share link nya ada /share/ nya"
-                                        // Backend route is /books/share/:slug
-                                        // Nginx will proxy /share/:slug -> /books/share/:slug
-                                        const shareUrl = `${window.location.origin}/share/${book.slug}`;
-                                        navigator.clipboard.writeText(shareUrl);
-                                        alert('Share link copied to clipboard: ' + shareUrl);
-                                    }}
-                                    className="text-xs font-bold px-4 py-2 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center gap-2"
-                                >
-                                    <Share2 size={12} /> SHARE
-                                </button>
-                                <Link to={`/read/${book.slug}`} className="text-xs font-bold px-4 py-2 bg-gray-100 hover:bg-cobalt-primary hover:text-white transition-colors">
-                                    VIEW
-                                </Link>
-                                <button onClick={() => handleDelete(book.id)} className="text-red-500 hover:text-red-700 p-2">
-                                    <Trash2 size={16} />
-                                </button>
+                        ))}
+                        {filteredBooks.length === 0 && (
+                            <div className="p-8 text-center opacity-40 font-mono text-sm bg-white border border-black/5">
+                                NO_DATA_MATCHING_FILTER.
                             </div>
-                        </div>
-                    ))}
-                    {books.length === 0 && (
-                        <div className="p-8 text-center opacity-40 font-mono text-sm">
-                            NO_DATA_FOUND.
+                        )}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex justify-center gap-2 mt-8">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="px-4 py-2 bg-white border border-black/10 text-xs font-bold uppercase tracking-widest hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                <button
+                                    key={page}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`w-8 h-8 flex items-center justify-center text-xs font-bold border ${currentPage === page
+                                        ? 'bg-black text-white border-black'
+                                        : 'bg-white text-black border-black/10 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="px-4 py-2 bg-white border border-black/10 text-xs font-bold uppercase tracking-widest hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
                         </div>
                     )}
                 </div>
