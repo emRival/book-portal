@@ -501,81 +501,116 @@ const Dashboard = () => {
                         </div>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
                         {paginatedBooks.map(book => (
-                            <div key={book.id} className="bg-white p-6 border border-black/5 flex items-center justify-between hover:shadow-lg transition-all">
-                                <div className="flex items-center gap-6">
-                                    <div className="w-12 h-16 bg-gray-100 flex items-center justify-center border border-gray-200 overflow-hidden">
+                            <div key={book.id} className="group bg-white p-6 border border-black/5 hover:border-black/10 transition-all hover:shadow-xl relative overflow-hidden">
+                                {/* Decorative bar */}
+                                <div className="absolute top-0 left-0 w-1 h-full bg-cobalt-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                                <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
+                                    {/* Cover Image */}
+                                    <div className="w-full md:w-20 md:h-28 bg-gray-100 flex-shrink-0 flex items-center justify-center border border-gray-200 overflow-hidden shadow-sm relative">
                                         {book.coverImage ? (
-                                            <img src={`${API_BASE_URL}/uploads/${book.coverImage}`} className="w-full h-full object-cover" />
+                                            <img src={`${API_BASE_URL}/uploads/${book.coverImage}`} className="w-full h-full object-cover" alt={book.title} />
                                         ) : (
-                                            <BookIcon size={16} className="opacity-20" />
+                                            <BookIcon size={24} className="opacity-20 text-black" />
                                         )}
+                                        {/* Overlay for file type if needed, e.g. PDF icon */}
+                                        <div className="absolute top-0 right-0 bg-black text-white text-[8px] font-bold px-1 py-0.5">
+                                            PDF
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="font-bold text-lg leading-tight">{book.title}</h3>
-                                        <div className="flex items-center gap-3">
-                                            <p className="text-xs font-mono text-text-muted uppercase">{book.author}</p>
-                                            <span className="w-1 h-1 bg-black/10 rounded-full"></span>
-                                            <span className="text-[10px] px-2 py-0.5 bg-gray-100 font-bold text-gray-500 uppercase tracking-tighter">
+
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                            <span className="text-[10px] font-bold px-2 py-0.5 bg-cobalt-primary/5 text-cobalt-primary border border-cobalt-primary/10 uppercase tracking-wider">
                                                 {book.category}
                                             </span>
-                                            <span className="w-1 h-1 bg-black/10 rounded-full"></span>
-                                            <span className="text-[10px] font-bold text-cobalt-primary flex items-center gap-1">
-                                                <Share2 size={10} /> {book.views} READS
-                                            </span>
-                                            {book.fileSize > 0 && (
-                                                <>
-                                                    <span className="w-1 h-1 bg-black/10 rounded-full"></span>
-                                                    <span className="text-[10px] font-mono text-gray-500">
-                                                        {formatFileSize(book.fileSize)}
-                                                    </span>
-                                                </>
-                                            )}
-                                            <span className="w-1 h-1 bg-black/10 rounded-full"></span>
-                                            <span className="text-[10px] font-mono font-bold uppercase text-black/40">
-                                                {new Date(book.createdAt).toLocaleDateString()}
+                                            <span className="text-[10px] font-mono text-gray-400 uppercase">
+                                                • {book.author}
                                             </span>
                                             {book.isProcessing && (
-                                                <span className="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded ml-2 animate-pulse">
+                                                <span className="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-0.5 rounded animate-pulse">
                                                     PROCESSING
                                                 </span>
                                             )}
                                         </div>
+
+                                        <h3 className="font-bold text-xl leading-tight mb-2 text-black group-hover:text-cobalt-primary transition-colors line-clamp-2"
+                                            dangerouslySetInnerHTML={{
+                                                __html: book.title.replace(/</g, "&lt;").replace(/>/g, "&gt;") // Basic sanitization before decoding entities via innerHTML
+                                            }}
+                                        >
+                                            {/* Title is rendered via dangerouslySetInnerHTML to decode &quot; etc. */}
+                                        </h3>
+
+                                        <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-gray-500">
+                                            <span className="flex items-center gap-1.5" title="Total Views">
+                                                <Share2 size={12} className="text-black/30" />
+                                                <strong className="text-black/70">{book.views}</strong>
+                                            </span>
+                                            <span className="w-px h-3 bg-gray-300"></span>
+                                            <span className="flex items-center gap-1.5" title="File Size">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-black/30"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                                                {formatFileSize(book.fileSize)}
+                                            </span>
+                                            <span className="w-px h-3 bg-gray-300"></span>
+                                            <span title="Uploaded Date">
+                                                {new Date(book.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <button
-                                        onClick={() => {
-                                            const shareUrl = `${window.location.origin}/share/${book.slug}`;
-                                            navigator.clipboard.writeText(shareUrl);
-                                            alert('Share link copied to clipboard: ' + shareUrl);
-                                        }}
-                                        className="text-xs font-bold px-4 py-2 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center gap-2"
-                                    >
-                                        <Share2 size={12} /> SHARE
-                                    </button>
-                                    <Link to={`/book/${book.slug}`} className="text-xs font-bold px-4 py-2 bg-gray-100 hover:bg-cobalt-primary hover:text-white transition-colors">
-                                        VIEW
-                                    </Link>
-                                    <button
-                                        onClick={() => {
-                                            setBookToEdit(book);
-                                            setEditModalOpen(true);
-                                        }}
-                                        className="text-xs font-bold px-4 py-2 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center gap-2"
-                                    >
-                                        <Edit3 size={12} /> EDIT
-                                    </button>
-                                    <button onClick={() => handleDelete(book.id)} className="text-red-500 hover:text-red-700 p-2">
-                                        <Trash2 size={16} />
-                                    </button>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex flex-row md:flex-col lg:flex-row items-center gap-2 w-full md:w-auto mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-gray-100">
+                                        <button
+                                            onClick={() => {
+                                                const shareUrl = `${window.location.origin}/share/${book.slug}`;
+                                                navigator.clipboard.writeText(shareUrl);
+                                                alert('Share link copied!');
+                                            }}
+                                            className="flex-1 md:flex-none h-9 px-4 bg-gray-50 hover:bg-white border border-gray-200 hover:border-cobalt-primary text-gray-600 hover:text-cobalt-primary transition-all flex items-center justify-center gap-2 group/btn"
+                                            title="Share Link"
+                                        >
+                                            <Share2 size={14} className="group-hover/btn:scale-110 transition-transform" />
+                                            <span className="md:hidden lg:inline text-[10px] font-bold uppercase tracking-wider">Share</span>
+                                        </button>
+
+                                        <Link
+                                            to={`/book/${book.slug}`}
+                                            className="flex-1 md:flex-none h-9 px-5 bg-black hover:bg-cobalt-primary text-white border border-black hover:border-cobalt-primary transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md group/btn"
+                                        >
+                                            <span className="text-[10px] font-bold uppercase tracking-wider">Read Content</span>
+                                        </Link>
+
+                                        <div className="flex items-center gap-2 border-l border-gray-200 pl-2 ml-2 md:border-l-0 md:pl-0 md:ml-0 md:border-t md:pt-2 md:mt-0 lg:border-l lg:border-t-0 lg:pl-2 lg:ml-2 lg:pt-0 lg:mt-0">
+                                            <button
+                                                onClick={() => {
+                                                    setBookToEdit(book);
+                                                    setEditModalOpen(true);
+                                                }}
+                                                className="p-2 text-gray-400 hover:text-cobalt-primary hover:bg-cobalt-primary/5 rounded transition-colors"
+                                                title="Edit Details"
+                                            >
+                                                <Edit3 size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(book.id)}
+                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                                title="Delete Book"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         ))}
                         {filteredBooks.length === 0 && (
-                            <div className="p-8 text-center opacity-40 font-mono text-sm bg-white border border-black/5">
-                                NO_DATA_MATCHING_FILTER.
+                            <div className="p-12 text-center flex flex-col items-center justify-center opacity-40 border-2 border-dashed border-black/5 rounded-lg">
+                                <Search size={48} className="mb-4 text-black/20" />
+                                <p className="font-mono text-sm uppercase tracking-widest">No Manifest Data Matching Filter</p>
                             </div>
                         )}
                     </div>
