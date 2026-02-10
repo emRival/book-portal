@@ -542,12 +542,7 @@ router.get('/share/:slug', async (req, res) => {
 });
 
 // PUT update book details (Protected - Owner or Admin)
-router.put('/:id', authenticateToken, bookIdValidation, [
-    // Validation for update fields
-    require('express-validator').body('title').optional().trim().isLength({ max: 200 }).escape(),
-    require('express-validator').body('description').optional().trim().isLength({ max: 500 }).escape(),
-    require('express-validator').body('category').optional().trim().isLength({ max: 50 }).escape()
-], validate, async (req, res) => {
+router.put('/:id', authenticateToken, bookIdValidation, uploadBookValidation, validate, async (req, res) => {
     try {
         const { id } = req.params;
         const { title, description, category } = req.body;
