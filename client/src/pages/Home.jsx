@@ -244,7 +244,7 @@ const Home = () => {
                             Array(4).fill(0).map((_, i) => <SkeletonCard key={i} />)
                         ) : paginatedBooks.length > 0 ? (
                             paginatedBooks.map((book) => (
-                                <Link to={`/read/${book.slug}`} key={book.id} className="group vellum-stack p-4 bg-white/50 hover:bg-white technical-glow">
+                                <Link to={`/book/${book.slug}`} key={book.id} className="group vellum-stack p-4 bg-white/50 hover:bg-white technical-glow">
                                     <div className="aspect-[3/4] bg-gray-50 border border-black/5 relative overflow-hidden mb-8">
                                         {book.coverImage ? (
                                             <img

@@ -555,7 +555,7 @@ const Dashboard = () => {
                                     >
                                         <Share2 size={12} /> SHARE
                                     </button>
-                                    <Link to={`/read/${book.slug}`} className="text-xs font-bold px-4 py-2 bg-gray-100 hover:bg-cobalt-primary hover:text-white transition-colors">
+                                    <Link to={`/book/${book.slug}`} className="text-xs font-bold px-4 py-2 bg-gray-100 hover:bg-cobalt-primary hover:text-white transition-colors">
                                         VIEW
                                     </Link>
                                     <button
