@@ -32,3 +32,4 @@ idn-book/uploads/*
 
 # Docker
 .dockerignore
+waf-report*.json
