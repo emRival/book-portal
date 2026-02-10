@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import { Upload, Trash2, Library, LogOut, Book as BookIcon, Share2, BarChart3, Menu, X, Search } from 'lucide-react';
+import { Upload, Trash2, Library, LogOut, Book as BookIcon, Share2, BarChart3, Menu, X, Search, Edit3 } from 'lucide-react';
 import { pdfjs } from 'react-pdf';
 import { jsPDF } from "jspdf";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { API_BASE_URL } from '../config';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import ConfirmationModal from '../components/ConfirmationModal';
+import EditBookModal from '../components/EditBookModal';
 
 // Ensure worker is set for cover generation using a matching CDN version
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -51,6 +52,8 @@ const Dashboard = () => {
     // Modal State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [bookToDelete, setBookToDelete] = useState(null);
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [bookToEdit, setBookToEdit] = useState(null);
 
     useEffect(() => {
         fetchBooks();
@@ -555,6 +558,15 @@ const Dashboard = () => {
                                     <Link to={`/read/${book.slug}`} className="text-xs font-bold px-4 py-2 bg-gray-100 hover:bg-cobalt-primary hover:text-white transition-colors">
                                         VIEW
                                     </Link>
+                                    <button
+                                        onClick={() => {
+                                            setBookToEdit(book);
+                                            setEditModalOpen(true);
+                                        }}
+                                        className="text-xs font-bold px-4 py-2 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center gap-2"
+                                    >
+                                        <Edit3 size={12} /> EDIT
+                                    </button>
                                     <button onClick={() => handleDelete(book.id)} className="text-red-500 hover:text-red-700 p-2">
                                         <Trash2 size={16} />
                                     </button>
@@ -601,6 +613,15 @@ const Dashboard = () => {
                     )}
                 </div>
             </div>
+
+            <EditBookModal
+                isOpen={editModalOpen}
+                onClose={() => setEditModalOpen(false)}
+                book={bookToEdit}
+                onUpdate={(updatedBook) => {
+                    setBooks(books.map(b => b.id === updatedBook.id ? { ...b, ...updatedBook } : b));
+                }}
+            />
         </div>
     );
 };

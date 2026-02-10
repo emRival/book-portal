@@ -541,6 +541,50 @@ router.get('/share/:slug', async (req, res) => {
     }
 });
 
+// PUT update book details (Protected - Owner or Admin)
+router.put('/:id', authenticateToken, bookIdValidation, [
+    // Validation for update fields
+    require('express-validator').body('title').optional().trim().isLength({ max: 200 }).escape(),
+    require('express-validator').body('description').optional().trim().isLength({ max: 500 }).escape(),
+    require('express-validator').body('category').optional().trim().isLength({ max: 50 }).escape()
+], validate, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, description, category } = req.body;
+
+        const book = await prisma.book.findUnique({ where: { id: parseInt(id) } });
+
+        if (!book) {
+            return res.status(404).json({ error: 'Book not found' });
+        }
+
+        // Check ownership or admin
+        if (book.userId !== req.user.userId && req.user.role !== 'ADMIN') {
+            return res.status(403).json({ error: 'You do not have permission to edit this book' });
+        }
+
+        // Update fields if provided
+        const updateData = {};
+        if (title !== undefined) updateData.title = title;
+        if (description !== undefined) updateData.description = description;
+        if (category !== undefined) updateData.category = category;
+
+        // If title changes, should we update slug? 
+        // Strategy: Keep slug permanent to avoid breaking share links. 
+        // Only update title display.
+
+        const updatedBook = await prisma.book.update({
+            where: { id: parseInt(id) },
+            data: updateData
+        });
+
+        res.json(updatedBook);
+    } catch (error) {
+        console.error("Update error:", error);
+        res.status(500).json({ error: 'Failed to update book' });
+    }
+});
+
 // DELETE book (Protected - Owner or Admin)
 router.delete('/:id', authenticateToken, bookIdValidation, validate, async (req, res) => {
     try {

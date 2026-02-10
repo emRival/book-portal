@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
-import { Book as BookIcon, ArrowRight, Share2, BarChart3, Activity, ShieldAlert, Cpu } from 'lucide-react';
+import { Book as BookIcon, ArrowRight, Share2, BarChart3, Activity, ShieldAlert, Cpu, Search } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
 const Home = () => {
@@ -53,11 +53,23 @@ const Home = () => {
         </div>
     );
 
-    const filteredBooks = selectedCategory === 'ALL'
-        ? books
-        : books.filter(b => b.category === selectedCategory);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 12;
 
-    const popularBooks = [...filteredBooks].sort((a, b) => b.views - a.views).slice(0, 4);
+    const filteredBooks = books.filter(b => {
+        const matchesCategory = selectedCategory === 'ALL' || b.category === selectedCategory;
+        const matchesSearch = b.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            b.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            b.category.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesCategory && matchesSearch;
+    });
+
+    const totalPages = Math.ceil(filteredBooks.length / ITEMS_PER_PAGE);
+    const paginatedBooks = filteredBooks.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     return (
         <div className="min-h-screen text-[#1a1a1a] selection:bg-black selection:text-white font-inter overflow-x-hidden relative blueprint-bg">
@@ -200,56 +212,105 @@ const Home = () => {
             {/* Content Display Grid */}
             <section id="archive" className="py-48 px-12 bg-white relative z-10 border-t border-black/5">
                 <div className="max-w-7xl mx-auto">
-                    {(loading || popularBooks.length > 0) && (
-                        <div>
-                            <div className="flex justify-between items-end mb-24">
-                                <div className="border-l-4 border-black pl-6">
-                                    <h2 className="text-4xl font-black tracking-tighter uppercase">{selectedCategory}_MANIFEST</h2>
-                                    <p className="text-xs font-bold uppercase tracking-[0.3em] opacity-30 mt-2">Latest Document Nodes</p>
-                                </div>
-                                <div className="hidden md:flex gap-4 text-[10px] font-mono opacity-40">
-                                    <span>SYSTEM_NODES: {filteredBooks.length}</span>
-                                    <span>/</span>
-                                    <span>STATUS: ONLINE</span>
-                                </div>
+                    <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-8">
+                        <div className="border-l-4 border-black pl-6">
+                            <h2 className="text-4xl font-black tracking-tighter uppercase">{selectedCategory}_MANIFEST</h2>
+                            <p className="text-xs font-bold uppercase tracking-[0.3em] opacity-30 mt-2">Latest Document Nodes</p>
+                        </div>
+                        <div className="flex flex-col md:flex-row gap-8 items-end w-full md:w-auto">
+                            <div className="relative w-full md:w-80">
+                                <Search className="absolute left-0 top-1/2 -translate-y-1/2 text-black/30" size={20} />
+                                <input
+                                    type="text"
+                                    placeholder="SEARCH ARCHIVE..."
+                                    value={searchTerm}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
+                                    className="w-full pl-8 pr-4 py-2 bg-transparent border-b-2 border-black/10 font-mono text-lg focus:outline-none focus:border-black transition-colors placeholder:text-black/20"
+                                />
                             </div>
+                            <div className="hidden md:flex gap-4 text-[10px] font-mono opacity-40 whitespace-nowrap">
+                                <span>SYSTEM_NODES: {filteredBooks.length}</span>
+                                <span>/</span>
+                                <span>STATUS: ONLINE</span>
+                            </div>
+                        </div>
+                    </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-8 lg:gap-16">
-                                {loading ? (
-                                    Array(4).fill(0).map((_, i) => <SkeletonCard key={i} />)
-                                ) : (
-                                    popularBooks.map((book) => (
-                                        <Link to={`/book/${book.slug}`} key={book.id} className="group vellum-stack p-4 bg-white/50 hover:bg-white technical-glow">
-                                            <div className="aspect-[3/4] bg-gray-50 border border-black/5 relative overflow-hidden mb-8">
-                                                {book.coverImage ? (
-                                                    <img
-                                                        src={`${API_BASE_URL}/uploads/${book.coverImage}`}
-                                                        className="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 scale-100 group-hover:scale-105"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full p-8 flex flex-col justify-between border-l-2 border-black/20 group-hover:border-black group-hover:bg-gray-100 transition-colors">
-                                                        <div className="text-[9px] font-mono opacity-30 uppercase">#REF_{book.id}</div>
-                                                        <div className="text-2xl font-black leading-none tracking-tighter">{book.title}</div>
-                                                        <div className="h-6 w-1 bg-black/10"></div>
-                                                    </div>
-                                                )}
-                                                <div className="absolute top-4 left-4">
-                                                    <div className="bg-black text-white px-3 py-1 text-[8px] font-mono font-bold tracking-[0.2em] uppercase">
-                                                        {book.category || 'General'}
-                                                    </div>
-                                                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-8 lg:gap-16">
+                        {loading ? (
+                            Array(4).fill(0).map((_, i) => <SkeletonCard key={i} />)
+                        ) : paginatedBooks.length > 0 ? (
+                            paginatedBooks.map((book) => (
+                                <Link to={`/read/${book.slug}`} key={book.id} className="group vellum-stack p-4 bg-white/50 hover:bg-white technical-glow">
+                                    <div className="aspect-[3/4] bg-gray-50 border border-black/5 relative overflow-hidden mb-8">
+                                        {book.coverImage ? (
+                                            <img
+                                                src={`${API_BASE_URL}/uploads/${book.coverImage}`}
+                                                className="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 scale-100 group-hover:scale-105"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full p-8 flex flex-col justify-between border-l-2 border-black/20 group-hover:border-black group-hover:bg-gray-100 transition-colors">
+                                                <div className="text-[9px] font-mono opacity-30 uppercase">#REF_{book.id}</div>
+                                                <div className="text-2xl font-black leading-none tracking-tighter">{book.title}</div>
+                                                <div className="h-6 w-1 bg-black/10"></div>
                                             </div>
-                                            <div className="px-1 py-4 flex flex-col gap-1 border-t border-black/5">
-                                                <h3 className="font-bold text-xl tracking-tighter leading-none group-hover:text-black transition-colors">{book.title}</h3>
-                                                <div className="flex justify-between items-center opacity-40">
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest">{book.author}</span>
-                                                    <span className="text-[9px] font-mono font-bold">{book.views} READS</span>
-                                                </div>
+                                        )}
+                                        <div className="absolute top-4 left-4">
+                                            <div className="bg-black text-white px-3 py-1 text-[8px] font-mono font-bold tracking-[0.2em] uppercase">
+                                                {book.category || 'General'}
                                             </div>
-                                        </Link>
-                                    ))
-                                )}
+                                        </div>
+                                    </div>
+                                    <div className="px-1 py-4 flex flex-col gap-1 border-t border-black/5">
+                                        <h3 className="font-bold text-xl tracking-tighter leading-none group-hover:text-black transition-colors line-clamp-2">{book.title}</h3>
+                                        <div className="flex justify-between items-center opacity-40">
+                                            <span className="text-[10px] font-bold uppercase tracking-widest truncate max-w-[100px]">{book.author}</span>
+                                            <span className="text-[9px] font-mono font-bold">{book.views} READS</span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))
+                        ) : (
+                            <div className="col-span-full py-24 text-center opacity-40 font-mono">
+                                NO_DATA_MATCHING_FILTER.
                             </div>
+                        )}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex justify-center gap-2 mt-24">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="px-6 py-3 bg-white border border-black/10 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-black"
+                            >
+                                Previous
+                            </button>
+                            <div className="flex gap-2">
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`w-10 h-10 flex items-center justify-center text-xs font-bold border transition-all ${currentPage === page
+                                            ? 'bg-black text-white border-black'
+                                            : 'bg-white text-black border-black/10 hover:border-black'
+                                            }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="px-6 py-3 bg-white border border-black/10 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-black"
+                            >
+                                Next
+                            </button>
                         </div>
                     )}
                 </div>
