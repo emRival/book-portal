@@ -58,13 +58,12 @@ const Login = () => {
             const res = await axios.post(`${API_BASE_URL}/auth/${endpoint}`, { username, password, cfToken });
 
             if (isRegistering) {
-                // If registered successfully, just login immediately or switch to login
-                const loginRes = await axios.post(`${API_BASE_URL}/auth/login`, { username, password });
-                localStorage.setItem('token', loginRes.data.token);
-                localStorage.setItem('username', loginRes.data.username);
-                localStorage.setItem('role', loginRes.data.role);
+                // Register success - Backend now returns token directly
+                localStorage.setItem('token', res.data.token);
+                localStorage.setItem('username', res.data.username);
+                localStorage.setItem('role', res.data.role);
 
-                if (loginRes.data.role === 'ADMIN') navigate('/admin-dashboard');
+                if (res.data.role === 'ADMIN') navigate('/admin-dashboard');
                 else navigate('/dashboard');
             } else {
                 localStorage.setItem('token', res.data.token);
@@ -78,6 +77,7 @@ const Login = () => {
             // Display backend validation errors if available
             const backendError = err.response?.data?.details?.[0]?.message || err.response?.data?.error || 'Authentication failed';
             setError(backendError);
+            setCfToken(''); // Clear token to force re-verification
         }
     };
 

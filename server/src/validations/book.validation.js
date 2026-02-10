@@ -10,8 +10,8 @@ exports.uploadBookValidation = [
     body('description')
         .optional()
         .trim()
-        .isLength({ max: 500 }).withMessage('Description too long')
-        .escape(),
+        .isLength({ max: 1000 }).withMessage('Description too long'),
+    // .escape() removed to allow special chars like " &
 
     body('category')
         .trim()

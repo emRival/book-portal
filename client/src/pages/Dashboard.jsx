@@ -414,13 +414,13 @@ const Dashboard = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-mono uppercase mb-1">Description (Max 100 words)</label>
+                                <label className="block text-[10px] font-mono uppercase mb-1">Description (Max 1000 chars)</label>
                                 <textarea
                                     value={description}
                                     onChange={e => setDescription(e.target.value)}
                                     placeholder="Brief summary..."
                                     className="w-full bg-bg-soft border border-black/10 p-2 font-mono text-sm h-24"
-                                    maxLength={500}
+                                    maxLength={1000}
                                 />
                             </div>
                             {/* Author input removed - automated from login */}

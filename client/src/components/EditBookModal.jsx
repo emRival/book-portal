@@ -71,13 +71,13 @@ const EditBookModal = ({ isOpen, onClose, book, onUpdate }) => {
 
                         <div>
                             <label className="block text-[10px] font-bold uppercase tracking-widest opacity-40 mb-2">
-                                SYNOPSIS / DATA (Max 500 chars)
+                                SYNOPSIS / DATA (Max 1000 chars)
                             </label>
                             <textarea
                                 value={description}
                                 onChange={e => setDescription(e.target.value)}
                                 className="w-full bg-gray-50 border border-black/10 p-3 font-mono text-sm h-32 focus:outline-none focus:border-cobalt-primary transition-colors resize-none"
-                                maxLength={500}
+                                maxLength={1000}
                             />
                         </div>
 

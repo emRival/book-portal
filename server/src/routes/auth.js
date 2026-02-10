@@ -65,7 +65,26 @@ router.post('/register', registerValidation, validate, async (req, res) => {
                 role
             },
         });
-        res.status(201).json({ message: 'User registered successfully', userId: user.id });
+        const token = jwt.sign({ userId: user.id, username: user.username, role: user.role }, SECRET_KEY, {
+            expiresIn: '24h',
+        });
+
+        // Initialize login stats
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                lastLoginAt: new Date(),
+                lastLoginIp: req.ip || req.connection.remoteAddress
+            }
+        });
+
+        res.status(201).json({
+            message: 'User registered successfully',
+            token,
+            username: user.username,
+            role: user.role,
+            userId: user.id
+        });
     } catch (error) {
         console.error('Registration Error:', error);
         res.status(500).json({ error: 'Registration failed', details: error.message });
