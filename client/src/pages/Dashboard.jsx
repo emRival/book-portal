@@ -142,7 +142,7 @@ const Dashboard = () => {
             alert('Title is too long (Max 200 chars)');
             return;
         }
-        if (!/^[a-zA-Z0-9\s\-_,]+$/.test(category)) {
+        if (!/^[a-zA-Z0-9\s\-_,&"'.]+$/.test(category)) {
             alert('Category contains invalid characters');
             return;
         }

@@ -4,8 +4,8 @@ exports.uploadBookValidation = [
     body('title')
         .trim()
         .notEmpty().withMessage('Title is required')
-        .isLength({ max: 200 }).withMessage('Title too long')
-        .escape(), // Prevent XSS
+        .isLength({ max: 200 }).withMessage('Title too long'),
+    // .escape() removed
 
     body('description')
         .optional()
@@ -17,8 +17,8 @@ exports.uploadBookValidation = [
         .trim()
         .notEmpty().withMessage('Category is required')
         .isLength({ max: 50 }).withMessage('Category too long')
-        .matches(/^[a-zA-Z0-9\s\-_,]+$/).withMessage('Invalid characters in category')
-        .escape()
+        .matches(/^[a-zA-Z0-9\s\-_,&"'.]+$/).withMessage('Invalid characters in category')
+
 ];
 
 exports.bookIdValidation = [
