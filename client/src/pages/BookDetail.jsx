@@ -24,6 +24,15 @@ const BookDetail = () => {
         fetchBook();
     }, [slug]);
 
+    useEffect(() => {
+        if (book) {
+            document.title = `${book.title} — IDN Book Portal`;
+        }
+        return () => {
+            document.title = 'IDN Book Portal — Buku IT Gratis: TKJ, RPL, Game Dev, Robotik | IDN Boarding School';
+        };
+    }, [book]);
+
     const formatFileSize = (bytes) => {
         if (bytes === 0) return '0 B';
         const k = 1024;

@@ -253,14 +253,17 @@ const Home = () => {
                                                 width="226"
                                                 height="320"
                                                 className="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 scale-100 group-hover:scale-105"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextElementSibling?.classList.remove('hidden');
+                                                }}
                                             />
-                                        ) : (
-                                            <div className="w-full h-full p-8 flex flex-col justify-between border-l-2 border-black/20 group-hover:border-black group-hover:bg-gray-100 transition-colors">
-                                                <div className="text-[9px] font-mono opacity-30 uppercase">#REF_{book.id}</div>
-                                                <div className="text-2xl font-black leading-none tracking-tighter">{book.title}</div>
-                                                <div className="h-6 w-1 bg-black/10"></div>
-                                            </div>
-                                        )}
+                                        ) : null}
+                                        <div className={`w-full h-full p-8 flex flex-col justify-between border-l-2 border-black/20 group-hover:border-black group-hover:bg-gray-100 transition-colors ${book.coverImage ? 'hidden' : ''}`}>
+                                            <div className="text-[9px] font-mono opacity-30 uppercase">#{book.id}</div>
+                                            <div className="text-2xl font-black leading-none tracking-tighter">{book.title}</div>
+                                            <div className="h-6 w-1 bg-black/10"></div>
+                                        </div>
                                         <div className="absolute top-4 left-4">
                                             <div className="bg-black text-white px-3 py-1 text-[8px] font-mono font-bold tracking-[0.2em] uppercase">
                                                 {book.category || 'General'}
