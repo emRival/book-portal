@@ -323,7 +323,7 @@ const Home = () => {
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
                     <div className="flex flex-col gap-2">
                         <div className="text-xl font-black tracking-tighter">IDN_BOOK PORTAL</div>
-                        <div className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-60">ARCHITECTURAL_VELLUM_EDITION v24.2.0</div>
+                        <div className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-80">BUILD BY IDN BOARDING SCHOOL PAMIJAHAN</div>
                     </div>
                     <div className="flex gap-8 text-[10px] font-black uppercase tracking-[0.2em] opacity-70 flex-wrap justify-center md:justify-end">
                         <button
