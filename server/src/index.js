@@ -70,29 +70,8 @@ const globalLimiter = rateLimit({
 });
 app.use('/books', globalLimiter);
 
-// Static files (for uploaded PDFs and covers) with fallback for missing images
-const fs = require('fs');
-const uploadsDir = path.join(process.cwd(), 'uploads');
-app.use('/uploads', (req, res, next) => {
-    const filePath = path.join(uploadsDir, req.path);
-    // Prevent path traversal
-    if (!filePath.startsWith(uploadsDir)) {
-        return res.status(403).json({ error: 'Access denied' });
-    }
-    if (fs.existsSync(filePath)) {
-        return express.static(uploadsDir)(req, res, next);
-    }
-    // For missing image files, serve default cover instead of 404
-    const ext = path.extname(req.path).toLowerCase();
-    if (['.webp', '.png', '.jpg', '.jpeg', '.gif', '.svg'].includes(ext)) {
-        const defaultCover = path.join(uploadsDir, 'default-cover.png');
-        if (fs.existsSync(defaultCover)) {
-            return res.sendFile(defaultCover);
-        }
-    }
-    // For non-image files (e.g. PDFs), return normal 404
-    res.status(404).json({ error: 'File not found' });
-});
+// Static files (for uploaded PDFs and covers)
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Routes
 app.use('/auth', authRoutes);
