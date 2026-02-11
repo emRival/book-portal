@@ -10,6 +10,9 @@ const apiProxy = {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  build: {
+    sourcemap: true,
+  },
   preview: {
     allowedHosts: true,
     host: true, // Listen on all addresses

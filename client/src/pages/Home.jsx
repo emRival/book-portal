@@ -75,7 +75,6 @@ const Home = () => {
         <div className="min-h-screen text-[#1a1a1a] selection:bg-black selection:text-white font-inter overflow-x-hidden relative blueprint-bg">
             <style>
                 {`
-                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;800&display=swap');
                     
                     .blueprint-bg {
                         background-color: #f0f0f0;
@@ -215,7 +214,7 @@ const Home = () => {
                     <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-8">
                         <div className="border-l-4 border-black pl-6">
                             <h2 className="text-4xl font-black tracking-tighter uppercase">{selectedCategory}_MANIFEST</h2>
-                            <p className="text-xs font-bold uppercase tracking-[0.3em] opacity-30 mt-2">Latest Document Nodes</p>
+                            <p className="text-xs font-bold uppercase tracking-[0.3em] opacity-60 mt-2">Latest Document Nodes</p>
                         </div>
                         <div className="flex flex-col md:flex-row gap-8 items-end w-full md:w-auto">
                             <div className="relative w-full md:w-80">
@@ -231,7 +230,7 @@ const Home = () => {
                                     className="w-full pl-8 pr-4 py-2 bg-transparent border-b-2 border-black/10 font-mono text-lg focus:outline-none focus:border-black transition-colors placeholder:text-black/20"
                                 />
                             </div>
-                            <div className="hidden md:flex gap-4 text-[10px] font-mono opacity-40 whitespace-nowrap">
+                            <div className="hidden md:flex gap-4 text-[10px] font-mono opacity-60 whitespace-nowrap">
                                 <span>SYSTEM_NODES: {filteredBooks.length}</span>
                                 <span>/</span>
                                 <span>STATUS: ONLINE</span>
@@ -249,6 +248,10 @@ const Home = () => {
                                         {book.coverImage ? (
                                             <img
                                                 src={`${API_BASE_URL}/uploads/${book.coverImage}`}
+                                                alt={book.title}
+                                                loading="lazy"
+                                                width="226"
+                                                height="320"
                                                 className="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 scale-100 group-hover:scale-105"
                                             />
                                         ) : (
@@ -320,9 +323,9 @@ const Home = () => {
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
                     <div className="flex flex-col gap-2">
                         <div className="text-xl font-black tracking-tighter">IDN_BOOK PORTAL</div>
-                        <div className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-30">ARCHITECTURAL_VELLUM_EDITION v24.2.0</div>
+                        <div className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-60">ARCHITECTURAL_VELLUM_EDITION v24.2.0</div>
                     </div>
-                    <div className="flex gap-8 text-[10px] font-black uppercase tracking-[0.2em] opacity-40 flex-wrap justify-center md:justify-end">
+                    <div className="flex gap-8 text-[10px] font-black uppercase tracking-[0.2em] opacity-70 flex-wrap justify-center md:justify-end">
                         <button
                             onClick={() => setSelectedCategory('ALL')}
                             className={`${selectedCategory === 'ALL' ? 'text-black opacity-100 underline underline-offset-4' : 'hover:opacity-100'} transition-all`}
