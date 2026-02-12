@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Turnstile from 'react-turnstile';
 import { API_BASE_URL } from '../config';
+import { encryptPayload } from '../utils/crypto';
 
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -55,7 +56,8 @@ const Login = () => {
                 setError('Please complete the CAPTCHA check.');
                 return;
             }
-            const res = await axios.post(`${API_BASE_URL}/auth/${endpoint}`, { username, password, cfToken });
+            const payload = await encryptPayload({ username, password, cfToken });
+            const res = await axios.post(`${API_BASE_URL}/auth/${endpoint}`, payload);
 
             if (isRegistering) {
                 // Register success - Backend now returns token directly

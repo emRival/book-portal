@@ -9,6 +9,21 @@ const validate = require('../middleware/validate');
 const { registerValidation, loginValidation, changePasswordValidation } = require('../validations/auth.validation');
 
 const prisma = new PrismaClient();
+const { decryptPayload } = require('../utils/crypto');
+
+// Middleware to decrypt encrypted payloads
+const decryptBody = (req, res, next) => {
+    try {
+        if (req.body.encrypted && req.body.iv) {
+            const decrypted = decryptPayload(req.body.encrypted, req.body.iv);
+            req.body = decrypted;
+        }
+        next();
+    } catch (err) {
+        console.error('Decryption error:', err.message);
+        return res.status(400).json({ error: 'Invalid encrypted payload' });
+    }
+};
 
 const verifyTurnstile = async (token) => {
     const secretKey = process.env.CLOUDFLARE_SECRET_KEY || '1x0000000000000000000000000000000AA'; // Test key
@@ -25,7 +40,7 @@ const verifyTurnstile = async (token) => {
 };
 
 // Register (Can be used to seed the first user)
-router.post('/register', registerValidation, validate, async (req, res) => {
+router.post('/register', decryptBody, registerValidation, validate, async (req, res) => {
     try {
         // Check if registration is enabled
         const settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
@@ -122,7 +137,7 @@ router.put('/settings', authenticateToken, async (req, res) => {
 });
 
 // Login
-router.post('/login', loginValidation, validate, async (req, res) => {
+router.post('/login', decryptBody, loginValidation, validate, async (req, res) => {
     try {
         const { username, password, cfToken } = req.body;
 
