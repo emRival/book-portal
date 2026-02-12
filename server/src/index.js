@@ -25,20 +25,38 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://static.cloudflareinsights.com"], // Allow inline scripts for redirect & Cloudflare
-            styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for redirect
-            imgSrc: ["'self'", "data:", "https:", "blob:"], // Allow images from any HTTPS source (for covers)
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://static.cloudflareinsights.com"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:", "blob:"],
             connectSrc: ["'self'", "https://static.cloudflareinsights.com"],
-            upgradeInsecureRequests: null, // Optional: disable if causing issues in dev/docker
+            frameAncestors: ["'self'"],
+            upgradeInsecureRequests: null,
         },
     },
-    crossOriginResourcePolicy: { policy: "cross-origin" }
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
 }));
 
 app.use(xss());
 app.use(hpp()); // Prevent HTTP Parameter Pollution
 app.use(mongoSanitize()); // Prevent NoSQL Injection (even if using SQL, good practice for object injection)
-app.use(cors());
+app.use(cors({
+    origin: function (origin, callback) {
+        const allowed = [
+            'https://book.idnbogor.id',
+            'http://localhost:5173',
+            'http://localhost:3000',
+        ];
+        // Allow requests with no origin (mobile apps, curl, server-to-server)
+        if (!origin || allowed.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+}));
 app.use(express.json({ limit: '10kb' })); // Body limit
 app.use(morgan('dev'));
 
