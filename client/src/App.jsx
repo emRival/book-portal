@@ -7,6 +7,7 @@ const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
 const Reader = React.lazy(() => import('./pages/Reader'));
 const BookDetail = React.lazy(() => import('./pages/BookDetail'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -45,7 +46,7 @@ function App() {
                 </PrivateRoute>
               }
             />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </div>
