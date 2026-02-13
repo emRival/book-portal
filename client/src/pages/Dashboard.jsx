@@ -175,8 +175,11 @@ const Dashboard = () => {
                         console.log('Compressed file larger than original, keeping original.');
                     }
                 } catch (compError) {
-                    console.error('Client-side compression failed, falling back to original', compError);
-                    alert('Compression failed. Uploading original file.');
+                    console.error('Client-side compression failed', compError);
+                    alert('Invalid PDF file or compression failed. Upload aborted.');
+                    setLoading(false);
+                    setIsCompressing(false);
+                    return; // Stop execution, do not upload original
                 }
             }
             setIsCompressing(false); // End compression tracking

@@ -414,6 +414,8 @@ const AdminDashboard = () => {
                                         <th className="p-4 opacity-50">USERNAME</th>
                                         <th className="p-4 opacity-50">ROLE</th>
                                         <th className="p-4 opacity-50">JOINED</th>
+                                        <th className="p-4 opacity-50">LAST LOGIN</th>
+                                        <th className="p-4 opacity-50">IP ADDRESS</th>
                                         <th className="p-4 opacity-50">ACTIONS</th>
                                     </tr>
                                 </thead>
@@ -428,6 +430,10 @@ const AdminDashboard = () => {
                                                 </span>
                                             </td>
                                             <td className="p-4 opacity-60">{new Date(user.createdAt).toLocaleDateString()}</td>
+                                            <td className="p-4 opacity-60 text-[10px] font-mono">
+                                                {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : '-'}
+                                            </td>
+                                            <td className="p-4 opacity-60 text-[10px] font-mono">{user.lastLoginIp || '-'}</td>
                                             <td className="p-4">
                                                 <div className="flex gap-2">
                                                     <button onClick={() => handleResetPassword(user.id)} className="flex items-center gap-1 bg-gray-700 hover:bg-white hover:text-black px-3 py-1 rounded">

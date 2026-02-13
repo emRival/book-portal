@@ -224,7 +224,7 @@ router.get('/users', authenticateToken, async (req, res) => {
     if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Access denied' });
     try {
         const users = await prisma.user.findMany({
-            select: { id: true, username: true, role: true, createdAt: true },
+            select: { id: true, username: true, role: true, createdAt: true, lastLoginAt: true, lastLoginIp: true },
             orderBy: { createdAt: 'desc' }
         });
         res.json(users);
