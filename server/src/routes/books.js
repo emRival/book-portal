@@ -155,6 +155,21 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
         const originalStats = fs.statSync(originalPdfAbsolutePath);
         const initialFileSize = originalStats.size;
 
+        // 1.5. Validate PDF Magic Bytes (Strict Check)
+        const pdfBuffer = Buffer.alloc(5);
+        const pdfFd = fs.openSync(originalPdfAbsolutePath, 'r');
+        fs.readSync(pdfFd, pdfBuffer, 0, 5, 0);
+        fs.closeSync(pdfFd);
+
+        if (pdfBuffer.toString() !== '%PDF-') {
+            fs.unlinkSync(originalPdfAbsolutePath); // Delete invalid file
+            if (coverPath) {
+                const coverAbsPath = path.join(process.cwd(), 'uploads', coverPath);
+                if (fs.existsSync(coverAbsPath)) fs.unlinkSync(coverAbsPath);
+            }
+            return res.status(400).json({ error: 'Invalid file content. File is not a valid PDF document.' });
+        }
+
         // 2. Create DB Record IMMEDIATELY (Prevent Cloudflare Timeout)
         // Ensure unique slug
         let baseSlug = createSlug(title);

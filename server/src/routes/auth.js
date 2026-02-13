@@ -39,6 +39,14 @@ const verifyTurnstile = async (token) => {
     }
 };
 
+const getClientIp = (req) => {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+        return forwarded.split(',')[0].trim();
+    }
+    return req.ip || req.connection.remoteAddress;
+};
+
 // Register (Can be used to seed the first user)
 router.post('/register', decryptBody, registerValidation, validate, async (req, res) => {
     try {
@@ -89,7 +97,7 @@ router.post('/register', decryptBody, registerValidation, validate, async (req, 
             where: { id: user.id },
             data: {
                 lastLoginAt: new Date(),
-                lastLoginIp: req.ip || req.connection.remoteAddress
+                lastLoginIp: getClientIp(req)
             }
         });
 
@@ -167,7 +175,7 @@ router.post('/login', decryptBody, loginValidation, validate, async (req, res) =
             where: { id: user.id },
             data: {
                 lastLoginAt: new Date(),
-                lastLoginIp: req.ip || req.connection.remoteAddress
+                lastLoginIp: getClientIp(req)
             }
         });
 
