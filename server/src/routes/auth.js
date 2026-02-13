@@ -44,7 +44,7 @@ const getClientIp = (req) => {
     if (forwarded) {
         return forwarded.split(',')[0].trim();
     }
-    return req.ip || req.connection.remoteAddress;
+    return req.headers['x-real-ip'] || req.ip || req.connection.remoteAddress;
 };
 
 // Register (Can be used to seed the first user)

@@ -28,6 +28,7 @@ const Dashboard = () => {
     const [compressionProgress, setCompressionProgress] = useState(0);
     const fileInputRef = useRef(null);
     const coverInputRef = useRef(null);
+    const abortControllerRef = useRef(null);
     const navigate = useNavigate();
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -129,6 +130,16 @@ const Dashboard = () => {
         });
     };
 
+    const handleCancelUpload = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+            setLoading(false);
+            setUploadProgress(0);
+            alert('Upload cancelled');
+        }
+    };
+
     const handleUpload = async (e) => {
         e.preventDefault();
         if (!file) return;
@@ -208,7 +219,11 @@ const Dashboard = () => {
 
             const token = localStorage.getItem('token');
 
+            // Create new AbortController
+            abortControllerRef.current = new AbortController();
+
             await axios.post(`${API_BASE_URL}/books`, formData, {
+                signal: abortControllerRef.current.signal,
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Authorization': `Bearer ${token}`
@@ -230,10 +245,15 @@ const Dashboard = () => {
             if (fileInputRef.current) fileInputRef.current.value = '';
             if (coverInputRef.current) coverInputRef.current.value = '';
         } catch (error) {
-            alert('Upload failed: ' + (error.response?.data?.details?.[0]?.message || error.response?.data?.error || error.message));
+            if (axios.isCancel(error)) {
+                console.log('Request canceled', error.message);
+            } else {
+                alert('Upload failed: ' + (error.response?.data?.details?.[0]?.message || error.response?.data?.error || error.message));
+            }
         } finally {
             setLoading(false);
             setIsCompressing(false);
+            abortControllerRef.current = null;
         }
     };
 
@@ -475,6 +495,16 @@ const Dashboard = () => {
                                     ></div>
                                 )}
                             </button>
+
+                            {loading && (
+                                <button
+                                    type="button"
+                                    onClick={handleCancelUpload}
+                                    className="w-full mt-2 text-red-500 hover:text-red-700 text-[10px] font-bold uppercase tracking-widest border border-red-500/20 py-2 hover:bg-red-50 transition-colors"
+                                >
+                                    [ CANCEL UPLOAD ]
+                                </button>
+                            )}
                         </form>
                     </div>
                 </div>
