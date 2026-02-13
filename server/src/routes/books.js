@@ -390,7 +390,7 @@ router.get('/share/:slug', async (req, res) => {
         // Assume domain is passed via env or hardcoded for now based on request context
         const domain = process.env.DOMAIN || 'https://book.idnbogor.id';
         const coverUrl = book.coverImage ? `${domain}/uploads/${book.coverImage}` : `${domain}/default-cover.png`;
-        const bookUrl = `${domain}/read/${slug}`; // Frontend viewer URL
+        const bookUrl = `${domain}/book/${slug}`; // Frontend viewer URL
         const description = book.description || `Read '${book.title}' by ${book.author} on IDN Book. Category: ${book.category}`;
 
         const html = `
