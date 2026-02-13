@@ -158,6 +158,22 @@ const Dashboard = () => {
             return;
         }
 
+        // Strict PDF Signature Check (%PDF-)
+        const isPDF = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const bytes = new Uint8Array(e.target.result);
+                const signature = String.fromCharCode(...bytes);
+                resolve(signature === '%PDF-');
+            };
+            reader.readAsArrayBuffer(file.slice(0, 5));
+        });
+
+        if (!isPDF) {
+            alert('Security Alert: Invalid PDF file signature. This file is not a valid PDF document and has been blocked.');
+            return;
+        }
+
         setLoading(true);
         setIsCompressing(true); // Start tracking compression status
 
