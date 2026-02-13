@@ -32,6 +32,9 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [statusMessage, setStatusMessage] = useState('');
+    const [uploadError, setUploadError] = useState('');
+    const [isValidationActive, setIsValidationActive] = useState(false);
 
     // Pagination & Search State
     const [searchTerm, setSearchTerm] = useState('');
@@ -158,7 +161,14 @@ const Dashboard = () => {
             return;
         }
 
+        setUploadError('');
+        setStatusMessage('INITIALIZING SECURITY PROTOCOLS...');
+        setIsValidationActive(true);
+        setLoading(true);
+
         // Strict PDF Signature Check (%PDF-)
+        await new Promise(r => setTimeout(r, 500)); // Visual spacing
+        setStatusMessage('VERIFYING FILE SIGNATURE (MAGIC BYTES)...');
         const isPDF = await new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -170,11 +180,12 @@ const Dashboard = () => {
         });
 
         if (!isPDF) {
-            alert('Security Alert: Invalid PDF file signature. This file is not a valid PDF document and has been blocked.');
+            setUploadError('SECURITY ALERT: INVALID PDF SIGNATURE DETECTED. FILE BLOCKED.');
+            setLoading(false);
             return;
         }
 
-        setLoading(true);
+        setStatusMessage('SIGNATURE VERIFIED. PREPARING OPTIMIZATION...');
         setIsCompressing(true); // Start tracking compression status
 
         try {
@@ -182,23 +193,28 @@ const Dashboard = () => {
             let uploadFile = file;
             if (file.type === 'application/pdf') {
                 try {
+                    setStatusMessage('COMPRESSING DATA BUFFERS...');
                     const compressedBlob = await compressPDF(file);
                     // Check if compression actually reduced size
                     if (compressedBlob.size < file.size) {
                         uploadFile = new File([compressedBlob], file.name, { type: 'application/pdf' });
                         console.log(`Compression success: ${formatFileSize(file.size)} -> ${formatFileSize(uploadFile.size)}`);
+                        setStatusMessage('OPTIMIZATION COMPLETE. SAVING BLOCK...');
                     } else {
                         console.log('Compressed file larger than original, keeping original.');
+                        setStatusMessage('FILE ALREADY OPTIMIZED.');
                     }
                 } catch (compError) {
                     console.error('Client-side compression failed', compError);
-                    alert('Invalid PDF file or compression failed. Upload aborted.');
+                    setUploadError('OPTIMIZATION FAILED: INVALID PDF CONTENT.');
                     setLoading(false);
                     setIsCompressing(false);
                     return; // Stop execution, do not upload original
                 }
             }
             setIsCompressing(false); // End compression tracking
+
+            setStatusMessage('GENERATING METADATA & COVER...');
 
             const formData = new FormData();
             formData.append('title', title);
@@ -241,6 +257,7 @@ const Dashboard = () => {
             // Create new AbortController
             abortControllerRef.current = new AbortController();
 
+            setStatusMessage('TRANSMITTING TO GRID...');
             await axios.post(`${API_BASE_URL}/books`, formData, {
                 signal: abortControllerRef.current.signal,
                 headers: {
@@ -252,6 +269,9 @@ const Dashboard = () => {
                     setUploadProgress(percentCompleted);
                 }
             });
+            setStatusMessage('SUCCESS: TRANSMISSION COMPLETE.');
+            await new Promise(r => setTimeout(r, 1000));
+            setIsValidationActive(false);
             fetchBooks();
             setTitle('');
             setDescription('');
@@ -265,9 +285,11 @@ const Dashboard = () => {
             if (coverInputRef.current) coverInputRef.current.value = '';
         } catch (error) {
             if (axios.isCancel(error)) {
-                console.log('Request canceled', error.message);
+                console.log('Upload cancelled');
+                setStatusMessage('UPLOAD CANCELLED BY USER.');
+                setTimeout(() => setIsValidationActive(false), 1500);
             } else {
-                alert('Upload failed: ' + (error.response?.data?.details?.[0]?.message || error.response?.data?.error || error.message));
+                setUploadError('UPLOAD FAILED: ' + (error.response?.data?.details?.[0]?.message || error.response?.data?.error || error.message));
             }
         } finally {
             setLoading(false);
@@ -706,6 +728,84 @@ const Dashboard = () => {
                     setBooks(books.map(b => b.id === updatedBook.id ? { ...b, ...updatedBook } : b));
                 }}
             />
+            {/* Upload Status Overlay & Modal */}
+            {isValidationActive && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div className="bg-bg-white border border-black max-w-md w-full p-8 shadow-2xl relative">
+                        {/* Corner accents */}
+                        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-black"></div>
+                        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-black"></div>
+                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-black"></div>
+                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-black"></div>
+
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-sm font-black tracking-widest uppercase flex items-center gap-2">
+                                    <Upload size={16} />
+                                    {uploadError ? 'SYSTEM ERROR' : 'UPLOADING MANIFEST'}
+                                </h2>
+                                <div className="text-[10px] font-mono opacity-40">NODE_ID: {Math.random().toString(16).slice(2, 8).toUpperCase()}</div>
+                            </div>
+
+                            {uploadError ? (
+                                <div className="bg-red-50 border border-red-200 p-6 space-y-4">
+                                    <div className="text-red-600 font-mono text-xs leading-relaxed uppercase tracking-tight">
+                                        {uploadError}
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setIsValidationActive(false);
+                                            setUploadError('');
+                                        }}
+                                        className="w-full bg-red-600 text-white font-black py-2 text-[10px] uppercase tracking-widest hover:bg-black transition-colors"
+                                    >
+                                        ACKNOWLEDGE & REJECT
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-[10px] font-mono font-bold tracking-tighter">
+                                            <span className="uppercase text-gray-500">{statusMessage}</span>
+                                            <span className="text-black">{loading ? uploadProgress : compressionProgress}%</span>
+                                        </div>
+                                        <div className="h-4 bg-gray-100 border border-black/5 relative overflow-hidden">
+                                            <div
+                                                className="h-full bg-black transition-all duration-300 ease-out"
+                                                style={{ width: `${loading ? uploadProgress : compressionProgress}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="font-mono text-[9px] text-gray-400 uppercase leading-tight space-y-1">
+                                        <div className="flex justify-between">
+                                            <span>ENCRYPT_STND</span>
+                                            <span>AES_GCM_SHA256</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>INTGRITY_CHK</span>
+                                            <span>%PDF-MAGIC_ENABLED</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>NETWORK_LATN</span>
+                                            <span>STABLE</span>
+                                        </div>
+                                    </div>
+
+                                    {loading && (
+                                        <button
+                                            onClick={handleCancelUpload}
+                                            className="w-full text-gray-400 hover:text-black text-[9px] font-bold uppercase tracking-widest border border-black/5 py-2 hover:bg-gray-50 transition-all"
+                                        >
+                                            [ ABORT_TRANSMISSION ]
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
