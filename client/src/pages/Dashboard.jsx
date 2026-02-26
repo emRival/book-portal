@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { Upload, Trash2, Library, LogOut, Book as BookIcon, Share2, BarChart3, Menu, X, Search, Edit3 } from 'lucide-react';
 import { pdfjs } from 'react-pdf';
+import { jsPDF } from 'jspdf';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { API_BASE_URL } from '../config';
 import ChangePasswordModal from '../components/ChangePasswordModal';
@@ -82,6 +83,56 @@ const Dashboard = () => {
         }
     };
 
+    const compressPDF = async (file) => {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const fileReader = new FileReader();
+                fileReader.readAsArrayBuffer(file);
+
+                fileReader.onload = async () => {
+                    try {
+                        const pdf = await pdfjs.getDocument(fileReader.result).promise;
+                        const doc = new jsPDF({
+                            orientation: 'p',
+                            unit: 'px',
+                            hotfixes: ['px_scaling']
+                        });
+
+                        doc.deletePage(1);
+
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better quality
+
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            canvas.width = viewport.width;
+                            canvas.height = viewport.height;
+
+                            await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                            const imgData = canvas.toDataURL('image/jpeg', 0.85); // 85% quality (was 60%)
+
+                            doc.addPage([viewport.width, viewport.height], viewport.width > viewport.height ? 'l' : 'p');
+                            doc.addImage(imgData, 'JPEG', 0, 0, viewport.width, viewport.height);
+
+                            setCompressionProgress(Math.round((i / pdf.numPages) * 100));
+                            setStatusMessage(`COMPRESSING PAGE ${i}/${pdf.numPages}...`);
+                        }
+
+                        const blob = doc.output('blob');
+                        resolve(blob);
+                    } catch (e) {
+                        reject(e);
+                    }
+                };
+                fileReader.onerror = (error) => reject(error);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    };
+
     const handleCancelUpload = () => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
@@ -134,12 +185,32 @@ const Dashboard = () => {
             return;
         }
 
-        setStatusMessage('SIGNATURE VERIFIED. PREPARING UPLOAD...');
-        setIsCompressing(false);
+        setStatusMessage('SIGNATURE VERIFIED. PREPARING OPTIMIZATION...');
+        setIsCompressing(true);
 
         try {
-            // Upload original file (no client-side compression to preserve PDF assets)
+            // Client-side compression with high quality settings
             let uploadFile = file;
+            if (file.type === 'application/pdf') {
+                try {
+                    setStatusMessage('COMPRESSING DATA BUFFERS...');
+                    const compressedBlob = await compressPDF(file);
+                    if (compressedBlob.size < file.size) {
+                        uploadFile = new File([compressedBlob], file.name, { type: 'application/pdf' });
+                        console.log(`Compression: ${(file.size / 1024 / 1024).toFixed(1)}MB -> ${(uploadFile.size / 1024 / 1024).toFixed(1)}MB`);
+                        setStatusMessage('OPTIMIZATION COMPLETE.');
+                    } else {
+                        console.log('Compressed larger than original, keeping original.');
+                        setStatusMessage('FILE ALREADY OPTIMIZED.');
+                    }
+                } catch (compError) {
+                    console.error('Compression failed, uploading original:', compError);
+                    setStatusMessage('OPTIMIZATION SKIPPED. USING ORIGINAL...');
+                    // Don't block upload — just use original file
+                }
+            }
+            setIsCompressing(false);
+
             setStatusMessage('GENERATING METADATA & COVER...');
 
             const formData = new FormData();
