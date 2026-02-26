@@ -3,7 +3,6 @@ import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { Upload, Trash2, Library, LogOut, Book as BookIcon, Share2, BarChart3, Menu, X, Search, Edit3 } from 'lucide-react';
 import { pdfjs } from 'react-pdf';
-import { jsPDF } from "jspdf";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { API_BASE_URL } from '../config';
 import ChangePasswordModal from '../components/ChangePasswordModal';
@@ -83,56 +82,6 @@ const Dashboard = () => {
         }
     };
 
-    const compressPDF = async (file) => {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const fileReader = new FileReader();
-                fileReader.readAsArrayBuffer(file);
-
-                fileReader.onload = async () => {
-                    try {
-                        const pdf = await pdfjs.getDocument(fileReader.result).promise;
-                        const doc = new jsPDF({
-                            orientation: 'p',
-                            unit: 'px',
-                            hotfixes: ["px_scaling"] // Important for accurate pixel scaling
-                        });
-
-                        // Remove default first page to avoid empty page if we add pages dynamically
-                        doc.deletePage(1);
-
-                        for (let i = 1; i <= pdf.numPages; i++) {
-                            const page = await pdf.getPage(i);
-                            const viewport = page.getViewport({ scale: 1.5 }); // 1.5 scale for balance between quality and size
-
-                            const canvas = document.createElement('canvas');
-                            const context = canvas.getContext('2d');
-                            canvas.width = viewport.width;
-                            canvas.height = viewport.height;
-
-                            await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-                            const imgData = canvas.toDataURL('image/jpeg', 0.6); // 60% quality JPEG
-
-                            doc.addPage([viewport.width, viewport.height], viewport.width > viewport.height ? 'l' : 'p');
-                            doc.addImage(imgData, 'JPEG', 0, 0, viewport.width, viewport.height);
-
-                            setCompressionProgress(Math.round((i / pdf.numPages) * 100));
-                        }
-
-                        const blob = doc.output('blob');
-                        resolve(blob);
-                    } catch (e) {
-                        reject(e);
-                    }
-                };
-                fileReader.onerror = (error) => reject(error);
-            } catch (error) {
-                reject(error);
-            }
-        });
-    };
-
     const handleCancelUpload = () => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
@@ -185,35 +134,12 @@ const Dashboard = () => {
             return;
         }
 
-        setStatusMessage('SIGNATURE VERIFIED. PREPARING OPTIMIZATION...');
-        setIsCompressing(true); // Start tracking compression status
+        setStatusMessage('SIGNATURE VERIFIED. PREPARING UPLOAD...');
+        setIsCompressing(false);
 
         try {
-            // Client-side Compression
+            // Upload original file (no client-side compression to preserve PDF assets)
             let uploadFile = file;
-            if (file.type === 'application/pdf') {
-                try {
-                    setStatusMessage('COMPRESSING DATA BUFFERS...');
-                    const compressedBlob = await compressPDF(file);
-                    // Check if compression actually reduced size
-                    if (compressedBlob.size < file.size) {
-                        uploadFile = new File([compressedBlob], file.name, { type: 'application/pdf' });
-                        console.log(`Compression success: ${formatFileSize(file.size)} -> ${formatFileSize(uploadFile.size)}`);
-                        setStatusMessage('OPTIMIZATION COMPLETE. SAVING BLOCK...');
-                    } else {
-                        console.log('Compressed file larger than original, keeping original.');
-                        setStatusMessage('FILE ALREADY OPTIMIZED.');
-                    }
-                } catch (compError) {
-                    console.error('Client-side compression failed', compError);
-                    setUploadError('OPTIMIZATION FAILED: INVALID PDF CONTENT.');
-                    setLoading(false);
-                    setIsCompressing(false);
-                    return; // Stop execution, do not upload original
-                }
-            }
-            setIsCompressing(false); // End compression tracking
-
             setStatusMessage('GENERATING METADATA & COVER...');
 
             const formData = new FormData();
