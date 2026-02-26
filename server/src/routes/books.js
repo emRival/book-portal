@@ -11,6 +11,11 @@ const { exec } = require('child_process'); // For Ghostscript
 const util = require('util');
 const execPromise = util.promisify(exec);
 
+// Ghostscript exec with timeout and buffer limits
+const GS_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+const GS_MAX_BUFFER = 10 * 1024 * 1024; // 10MB
+const gsExec = (cmd) => execPromise(cmd, { timeout: GS_TIMEOUT, maxBuffer: GS_MAX_BUFFER });
+
 const prisma = new PrismaClient();
 
 // Multer Storage Config
@@ -222,7 +227,7 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                         // Ghostscript command to count pages
                         // Added -dNOSAFER to allow file access via PostScript 'file' operator
                         const cmd = `gs -dNOSAFER -q -dNODISPLAY -c "(${filePath}) (r) file runpdfbegin pdfpagecount = quit"`;
-                        const { stdout } = await execPromise(cmd);
+                        const { stdout } = await gsExec(cmd);
                         return parseInt(stdout.trim()) || 0;
                     } catch (e) {
                         console.error("Error counting pages:", e);
@@ -260,7 +265,7 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                         chunkFiles.push(chunkPath);
 
                         const cmd = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dFirstPage=${chunk.start} -dLastPage=${chunk.end} -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${chunkPath}" "${originalPdfAbsolutePath}"`;
-                        await execPromise(cmd);
+                        await gsExec(cmd);
                         return chunkPath;
                     };
 
@@ -282,7 +287,7 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                     // but standard exec might hit limits.
                     // Construct command strictly with sorted chunk list.
                     const mergeCmd = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${compressedPdfPath}" ${chunkFiles.map(f => `"${f}"`).join(' ')}`;
-                    await execPromise(mergeCmd);
+                    await gsExec(mergeCmd);
 
                     // Cleanup Temp
                     fs.rmSync(tempDir, { recursive: true, force: true });
@@ -290,8 +295,9 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                 } else {
                     // Standard single-pass compression for small page count
                     console.log(`[Background] Using Single-Pass Compression (Pages: ${totalPages})`);
-                    const command = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${compressedPdfPath}" "${originalPdfAbsolutePath}"`;
-                    await execPromise(command);
+                    const command = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dBATCH -sOutputFile="${compressedPdfPath}" "${originalPdfAbsolutePath}"`;
+                    const { stderr } = await gsExec(command);
+                    if (stderr) console.log(`[Background] GS stderr: ${stderr.substring(0, 500)}`);
                 }
 
                 // Check new size
@@ -303,9 +309,22 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                     throw new Error(`Compressed file too small (${newFileSize} bytes), potential corruption.`);
                 }
 
-                console.log(`[Background] Compression success: ${initialFileSize} -> ${newFileSize} bytes`);
+                // Validation: If compressed file is LARGER or equal, keep original
+                if (newFileSize >= initialFileSize) {
+                    console.log(`[Background] Compression SKIPPED: ${initialFileSize} -> ${newFileSize} bytes (larger). Keeping original.`);
+                    // Delete the bloated compressed file, keep original
+                    fs.unlinkSync(compressedPdfPath);
+                    await prisma.book.update({
+                        where: { id: book.id },
+                        data: { isProcessing: false }
+                    });
+                    return;
+                }
 
-                // Update DB
+                const savings = ((1 - newFileSize / initialFileSize) * 100).toFixed(1);
+                console.log(`[Background] Compression success: ${initialFileSize} -> ${newFileSize} bytes (${savings}% smaller)`);
+
+                // Update DB with compressed file
                 await prisma.book.update({
                     where: { id: book.id },
                     data: {
@@ -315,7 +334,7 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                     }
                 });
 
-                // Delete original file
+                // Delete original file ONLY after successful compression
                 fs.unlinkSync(originalPdfAbsolutePath);
                 console.log(`[Background] Original file deleted: ${pdfPath}`);
 
