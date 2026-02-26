@@ -203,12 +203,11 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
         // 3. Respond to client immediately
         res.status(201).json(book);
 
-        // 4. Background Process: Compress PDF
+        // 4. Background Process: Compress PDF for fast web reading
         (async () => {
-            // Optimization: Skip compression if file < 20MB
-            if (initialFileSize < 20 * 1024 * 1024) {
-                console.log(`[Background] Skipping compression for book ${book.id} (${slug}) - Size ${initialFileSize} < 20MB`);
-                // Mark as ready since we skipped compression
+            // Skip compression for very large files (> 80MB) — too slow
+            if (initialFileSize > 80 * 1024 * 1024) {
+                console.log(`[Background] Skipping compression for book ${book.id} (${slug}) - Size ${(initialFileSize / 1024 / 1024).toFixed(1)}MB > 80MB limit`);
                 await prisma.book.update({
                     where: { id: book.id },
                     data: { isProcessing: false }
@@ -216,103 +215,63 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                 return;
             }
 
-            console.log(`[Background] Starting compression for book ${book.id} (${slug})`);
+            console.log(`[Background] Starting compression for book ${book.id} (${slug}) - ${(initialFileSize / 1024 / 1024).toFixed(1)}MB`);
+            const compressedPdfFilename = `compressed-${Date.now()}.pdf`;
+            const compressedPdfPath = path.join(process.cwd(), 'uploads', compressedPdfFilename);
+
             try {
-                const compressedPdfFilename = `compressed-${Date.now()}.pdf`;
-                const compressedPdfPath = path.join(process.cwd(), 'uploads', compressedPdfFilename);
+                // Screen-optimized Ghostscript: 150 DPI, fast, good quality for web viewing
+                const gsCommand = [
+                    'gs -sDEVICE=pdfwrite',
+                    '-dCompatibilityLevel=1.4',
+                    '-dDownsampleColorImages=true',
+                    '-dDownsampleGrayImages=true',
+                    '-dDownsampleMonoImages=true',
+                    '-dColorImageResolution=150',
+                    '-dGrayImageResolution=150',
+                    '-dMonoImageResolution=300',
+                    '-dAutoFilterColorImages=false',
+                    '-dColorImageFilter=/DCTEncode',
+                    '-dAutoFilterGrayImages=false',
+                    '-dGrayImageFilter=/DCTEncode',
+                    '-dNOPAUSE -dBATCH',
+                    `-sOutputFile="${compressedPdfPath}"`,
+                    `"${originalPdfAbsolutePath}"`
+                ].join(' ');
 
-                // Helper to get page count
-                const getPageCount = async (filePath) => {
-                    try {
-                        // Ghostscript command to count pages
-                        // Added -dNOSAFER to allow file access via PostScript 'file' operator
-                        const cmd = `gs -dNOSAFER -q -dNODISPLAY -c "(${filePath}) (r) file runpdfbegin pdfpagecount = quit"`;
-                        const { stdout } = await gsExec(cmd);
-                        return parseInt(stdout.trim()) || 0;
-                    } catch (e) {
-                        console.error("Error counting pages:", e);
-                        return 0;
-                    }
-                };
+                // Dynamic timeout: 15 seconds per MB, min 60s, max 5min
+                const sizeMB = initialFileSize / (1024 * 1024);
+                const dynamicTimeout = Math.min(Math.max(sizeMB * 15 * 1000, 60000), 5 * 60 * 1000);
+                console.log(`[Background] Timeout set to ${(dynamicTimeout / 1000).toFixed(0)}s for ${sizeMB.toFixed(1)}MB file`);
 
-                const totalPages = await getPageCount(originalPdfAbsolutePath);
-                console.log(`[Background] Total pages for ${slug}: ${totalPages}`);
+                const { stdout, stderr } = await execPromise(gsCommand, {
+                    timeout: dynamicTimeout,
+                    maxBuffer: GS_MAX_BUFFER
+                });
 
-                // Parallel Chunking Strategy
-                const CHUNK_SIZE = 10;
-                const CONCURRENCY_LIMIT = 5;
+                if (stdout) {
+                    // Extract page progress from stdout
+                    const pages = stdout.match(/Page \d+/g);
+                    if (pages) console.log(`[Background] Processed ${pages.length} pages`);
+                }
+                if (stderr) console.log(`[Background] GS warnings: ${stderr.substring(0, 300)}`);
 
-                // Only use chunking if pages > 20 (otherwise single pass is fine)
-                if (totalPages > 20) {
-                    console.log(`[Background] Using Parallel Chunking (Pages: ${totalPages}, Chunk: ${CHUNK_SIZE})`);
-
-                    const chunks = [];
-                    const chunkFiles = [];
-                    const tempDir = path.join(process.cwd(), 'uploads', `temp-${book.id}-${Date.now()}`);
-                    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
-
-                    // Create chunks
-                    for (let i = 1; i <= totalPages; i += CHUNK_SIZE) {
-                        const start = i;
-                        const end = Math.min(i + CHUNK_SIZE - 1, totalPages);
-                        chunks.push({ start, end, index: chunks.length });
-                    }
-
-                    // Process chunks with concurrency control
-                    const processChunk = async (chunk) => {
-                        const chunkFilename = `chunk-${chunk.index.toString().padStart(4, '0')}.pdf`;
-                        const chunkPath = path.join(tempDir, chunkFilename);
-                        chunkFiles.push(chunkPath);
-
-                        const cmd = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dFirstPage=${chunk.start} -dLastPage=${chunk.end} -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${chunkPath}" "${originalPdfAbsolutePath}"`;
-                        await gsExec(cmd);
-                        return chunkPath;
-                    };
-
-                    // Run in batches
-                    for (let i = 0; i < chunks.length; i += CONCURRENCY_LIMIT) {
-                        const batch = chunks.slice(i, i + CONCURRENCY_LIMIT);
-                        await Promise.all(batch.map(processChunk));
-                        console.log(`[Background] Processed batch ${i / CONCURRENCY_LIMIT + 1}/${Math.ceil(chunks.length / CONCURRENCY_LIMIT)}`);
-                    }
-
-                    // Sort chunk files to ensure correct order (though we pushed in order)
-                    chunkFiles.sort();
-
-                    // Merge Chunks
-                    console.log(`[Background] Merging ${chunkFiles.length} chunks...`);
-                    // Use a file list for GS to avoid command line length limits if many chunks
-                    // But for now, direct arg passing is likely fine for reasonable sizes.
-                    // If too many files, we could write a response file (check GS docs for @filelist), 
-                    // but standard exec might hit limits.
-                    // Construct command strictly with sorted chunk list.
-                    const mergeCmd = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${compressedPdfPath}" ${chunkFiles.map(f => `"${f}"`).join(' ')}`;
-                    await gsExec(mergeCmd);
-
-                    // Cleanup Temp
-                    fs.rmSync(tempDir, { recursive: true, force: true });
-
-                } else {
-                    // Standard single-pass compression for small page count
-                    console.log(`[Background] Using Single-Pass Compression (Pages: ${totalPages})`);
-                    const command = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dBATCH -sOutputFile="${compressedPdfPath}" "${originalPdfAbsolutePath}"`;
-                    const { stderr } = await gsExec(command);
-                    if (stderr) console.log(`[Background] GS stderr: ${stderr.substring(0, 500)}`);
+                // Validate compressed file exists
+                if (!fs.existsSync(compressedPdfPath)) {
+                    throw new Error('Compressed file was not created');
                 }
 
-                // Check new size
                 const newStats = fs.statSync(compressedPdfPath);
                 const newFileSize = newStats.size;
 
-                // Validation: If compressed file is too small (< 5KB), assume failure
+                // Guard: too small = corrupt
                 if (newFileSize < 5 * 1024) {
                     throw new Error(`Compressed file too small (${newFileSize} bytes), potential corruption.`);
                 }
 
-                // Validation: If compressed file is LARGER or equal, keep original
+                // Guard: bigger than original = keep original
                 if (newFileSize >= initialFileSize) {
-                    console.log(`[Background] Compression SKIPPED: ${initialFileSize} -> ${newFileSize} bytes (larger). Keeping original.`);
-                    // Delete the bloated compressed file, keep original
+                    console.log(`[Background] Compression SKIPPED: ${(initialFileSize / 1024 / 1024).toFixed(1)}MB -> ${(newFileSize / 1024 / 1024).toFixed(1)}MB (larger). Keeping original.`);
                     fs.unlinkSync(compressedPdfPath);
                     await prisma.book.update({
                         where: { id: book.id },
@@ -322,7 +281,7 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                 }
 
                 const savings = ((1 - newFileSize / initialFileSize) * 100).toFixed(1);
-                console.log(`[Background] Compression success: ${initialFileSize} -> ${newFileSize} bytes (${savings}% smaller)`);
+                console.log(`[Background] Compression success: ${(initialFileSize / 1024 / 1024).toFixed(1)}MB -> ${(newFileSize / 1024 / 1024).toFixed(1)}MB (${savings}% smaller)`);
 
                 // Update DB with compressed file
                 await prisma.book.update({
@@ -330,19 +289,23 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                     data: {
                         pdfPath: compressedPdfFilename,
                         fileSize: newFileSize,
-                        isProcessing: false // Mark as ready
+                        isProcessing: false
                     }
                 });
 
-                // Delete original file ONLY after successful compression
+                // Delete original ONLY after successful compression + DB update
                 fs.unlinkSync(originalPdfAbsolutePath);
                 console.log(`[Background] Original file deleted: ${pdfPath}`);
 
             } catch (error) {
-                console.error(`[Background] Compression failed for book ${book.id}:`, error);
+                console.error(`[Background] Compression failed for book ${book.id}:`, error.message || error);
 
-                // Fallback: If compression fails, use ORIGINAL file and mark ready
-                // effectively skipping compression for this error case
+                // Cleanup failed compressed file if it exists
+                if (fs.existsSync(compressedPdfPath)) {
+                    try { fs.unlinkSync(compressedPdfPath); } catch (e) { /* ignore */ }
+                }
+
+                // Fallback: keep original file, mark as ready
                 await prisma.book.update({
                     where: { id: book.id },
                     data: { isProcessing: false }
