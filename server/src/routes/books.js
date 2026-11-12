@@ -240,8 +240,9 @@ router.post('/', authenticateToken, upload.fields([{ name: 'pdf', maxCount: 1 },
                 ].join(' ');
 
                 // Dynamic timeout: 15 seconds per MB, min 60s, max 5min
+                // Must be an integer — exec() throws "value of timeout is out of range" for floats.
                 const sizeMB = initialFileSize / (1024 * 1024);
-                const dynamicTimeout = Math.min(Math.max(sizeMB * 15 * 1000, 60000), 5 * 60 * 1000);
+                const dynamicTimeout = Math.round(Math.min(Math.max(sizeMB * 15 * 1000, 60000), 5 * 60 * 1000));
                 console.log(`[Background] Timeout set to ${(dynamicTimeout / 1000).toFixed(0)}s for ${sizeMB.toFixed(1)}MB file`);
 
                 const { stdout, stderr } = await execPromise(gsCommand, {
@@ -368,12 +369,22 @@ router.get('/share/:slug', async (req, res) => {
 
         if (!book) return res.status(404).send('Book not found');
 
+        // Escape user-controlled values before injecting into HTML/attributes (XSS guard)
+        const escapeHtml = (str) => String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
         // Construct absolute URLs
         // Assume domain is passed via env or hardcoded for now based on request context
         const domain = process.env.DOMAIN || 'https://book.idnbogor.id';
         const coverUrl = book.coverImage ? `${domain}/uploads/${book.coverImage}` : `${domain}/default-cover.png`;
         const bookUrl = `${domain}/book/${slug}`; // Frontend viewer URL
         const description = book.description || `Read '${book.title}' by ${book.author} on IDN Book. Category: ${book.category}`;
+        const safeTitle = escapeHtml(book.title);
+        const safeDescription = escapeHtml(description);
 
         const html = `
             <!DOCTYPE html>
@@ -381,21 +392,21 @@ router.get('/share/:slug', async (req, res) => {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>${book.title} - IDN Book</title>
+                <title>${safeTitle} - IDN Book</title>
                 
                 <!-- Open Graph / Facebook -->
                 <meta property="og:type" content="book" />
                 <meta property="og:url" content="${bookUrl}" />
-                <meta property="og:title" content="${book.title}" />
-                <meta property="og:description" content="${description}" />
+                <meta property="og:title" content="${safeTitle}" />
+                <meta property="og:description" content="${safeDescription}" />
                 <meta property="og:image" content="${coverUrl}" />
                 <meta property="og:image:width" content="800" />
 
                 <!-- Twitter -->
                 <meta property="twitter:card" content="summary_large_image" />
                 <meta property="twitter:url" content="${bookUrl}" />
-                <meta property="twitter:title" content="${book.title}" />
-                <meta property="twitter:description" content="${description}" />
+                <meta property="twitter:title" content="${safeTitle}" />
+                <meta property="twitter:description" content="${safeDescription}" />
                 <meta property="twitter:image" content="${coverUrl}" />
 
                 <style>
@@ -514,7 +525,7 @@ router.get('/share/:slug', async (req, res) => {
             <body>
                 <div class="container">
                     <img src="${domain}/logo.png" style="width: 64px; height: 64px; margin-bottom: 16px;" alt="Logo">
-                    <h1>${book.title}</h1>
+                    <h1>${safeTitle}</h1>
                     <p>Redirecting to Reader Node...</p>
                     
                     <div class="loader-bar"></div>

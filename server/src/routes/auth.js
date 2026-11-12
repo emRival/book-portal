@@ -25,18 +25,50 @@ const decryptBody = (req, res, next) => {
     }
 };
 
+// Verify Cloudflare Turnstile token.
+// - Has a per-attempt timeout so a network outage cannot hang login requests.
+// - Retries transient network failures (e.g. DNS EAI_AGAIN) a few times.
+// Returns { success: boolean, networkError: boolean } so routes can respond
+// with an accurate message instead of blaming the user for a server outage.
+const TURNSTILE_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+const TURNSTILE_ATTEMPTS = parseInt(process.env.TURNSTILE_RETRIES || '3', 10);
+const TURNSTILE_TIMEOUT = parseInt(process.env.TURNSTILE_TIMEOUT || '5000', 10);
+
 const verifyTurnstile = async (token) => {
     const secretKey = process.env.CLOUDFLARE_SECRET_KEY || '1x0000000000000000000000000000000AA'; // Test key
-    try {
-        const response = await axios.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-            secret: secretKey,
-            response: token
-        });
-        return response.data.success;
-    } catch (error) {
-        console.error('Turnstile verification error:', error);
-        return false;
+
+    if (!token) {
+        return { success: false, networkError: false };
     }
+
+    for (let attempt = 1; attempt <= TURNSTILE_ATTEMPTS; attempt++) {
+        try {
+            const response = await axios.post(TURNSTILE_URL, {
+                secret: secretKey,
+                response: token
+            }, {
+                timeout: TURNSTILE_TIMEOUT
+            });
+            // Cloudflare answered: this is a definitive verification result.
+            return { success: !!response.data.success, networkError: false };
+        } catch (error) {
+            const isNetworkError = !error.response; // No HTTP response = network/DNS problem
+            if (!isNetworkError) {
+                // Cloudflare rejected the request itself (bad secret, etc.)
+                console.error('Turnstile request rejected by Cloudflare:', error.response?.status, error.response?.data);
+                return { success: false, networkError: false };
+            }
+
+            console.error(`Turnstile verification error (attempt ${attempt}/${TURNSTILE_ATTEMPTS}): ${error.code || error.message}`);
+            if (attempt < TURNSTILE_ATTEMPTS) {
+                // Exponential backoff: 500ms, 1000ms, ...
+                await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+            }
+        }
+    }
+
+    // All attempts failed due to network issues — server problem, not user problem.
+    return { success: false, networkError: true };
 };
 
 const getClientIp = (req) => {
@@ -59,9 +91,17 @@ router.post('/register', decryptBody, registerValidation, validate, async (req, 
         const { username, password, cfToken } = req.body;
 
         // Verify CAPTCHA
-        const isHuman = await verifyTurnstile(cfToken);
-        if (!isHuman) {
-            return res.status(400).json({ error: 'CAPTCHA verification failed' });
+        const captcha = await verifyTurnstile(cfToken);
+        if (!captcha.success) {
+            if (captcha.networkError && process.env.TURNSTILE_FAIL_OPEN !== 'true') {
+                // CAPTCHA service unreachable (server-side network problem).
+                return res.status(503).json({ error: 'CAPTCHA service is temporarily unavailable. Please try again in a moment.' });
+            }
+            if (captcha.networkError && process.env.TURNSTILE_FAIL_OPEN === 'true') {
+                console.warn('[Auth] Turnstile unreachable — allowing request because TURNSTILE_FAIL_OPEN=true');
+            } else {
+                return res.status(400).json({ error: 'CAPTCHA verification failed' });
+            }
         }
 
         // Validation handled by middleware
@@ -150,9 +190,17 @@ router.post('/login', decryptBody, loginValidation, validate, async (req, res) =
         const { username, password, cfToken } = req.body;
 
         // Verify CAPTCHA
-        const isHuman = await verifyTurnstile(cfToken);
-        if (!isHuman) {
-            return res.status(400).json({ error: 'CAPTCHA verification failed' });
+        const captcha = await verifyTurnstile(cfToken);
+        if (!captcha.success) {
+            if (captcha.networkError && process.env.TURNSTILE_FAIL_OPEN !== 'true') {
+                // CAPTCHA service unreachable (server-side network problem).
+                return res.status(503).json({ error: 'CAPTCHA service is temporarily unavailable. Please try again in a moment.' });
+            }
+            if (captcha.networkError && process.env.TURNSTILE_FAIL_OPEN === 'true') {
+                console.warn('[Auth] Turnstile unreachable — allowing login because TURNSTILE_FAIL_OPEN=true');
+            } else {
+                return res.status(400).json({ error: 'CAPTCHA verification failed' });
+            }
         }
 
         const user = await prisma.user.findUnique({ where: { username } });
